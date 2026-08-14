@@ -1,42 +1,47 @@
-"""Registru Transferuri Media v2.0 - Entry Point"""
-import sys, logging
+import sys
 from pathlib import Path
 from configparser import ConfigParser
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from database.db import DatabaseManager
+from ui.login_dialog import LoginDialog
 from ui.main_window import MainWindow
 
-def setup_logging():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-def load_config():
-    cfg = ConfigParser()
-    cfg_file = Path("config.ini")
-    if not cfg_file.exists():
-        cfg['General'] = {'prefix_nr': 'MAPN', 'institutie': 'MApN', 'versiune': '2.0.0'}
-        cfg['Database'] = {'path': 'transferuri.db'}
-        with open(cfg_file, 'w') as f:
-            cfg.write(f)
-    cfg.read('config.ini')
-    return cfg
+def load_config() -> ConfigParser:
+    config = ConfigParser()
+    config_path = Path(__file__).parent / "config.ini"
+    if not config_path.exists():
+        config['General'] = {
+            'institutie': 'Ministerul Apărării Naționale',
+            'prefix_nr': 'MAPN',
+            'auto_backup_on_close': 'true',
+            'verificare_hash_startup': 'true'
+        }
+        with open(config_path, 'w', encoding='utf-8') as f:
+            config.write(f)
+    else:
+        config.read(config_path, encoding='utf-8')
+    return config
 
 def main():
-    setup_logging()
     app = QApplication(sys.argv)
-    app.setApplicationName("Registru Transferuri")
-    
-    try:
-        config = load_config()
-        db = DatabaseManager(config.get('Database', 'path', fallback='transferuri.db'))
-        
-        operator_name = "Administrator"
-        window = MainWindow(db, config, operator_name)
-        window.show()
-        
-        return app.exec()
-    except Exception as e:
-        QMessageBox.critical(None, "Eroare Critică", f"Aplicația nu poate porni:\\n{str(e)}")
-        return 1
+    app.setApplicationName("Registru Transferuri Media v3.0")
+
+    config = load_config()
+    db_path = Path(__file__).parent / "transferuri.db"
+    db = DatabaseManager(str(db_path))
+
+    login = LoginDialog(db)
+    if login.exec() != LoginDialog.DialogCode.Accepted:
+        sys.exit(0)
+
+    operator = login.authenticated_operator
+    if not operator:
+        sys.exit(0)
+
+    window = MainWindow(db, operator, config)
+    window.show()
+
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

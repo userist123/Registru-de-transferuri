@@ -1,335 +1,304 @@
-"""
-Tab Înregistrare - Formular transfer nou
-"""
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QPushButton, QComboBox, QMessageBox, QGroupBox, QFormLayout,
+    QSpinBox, QDoubleSpinBox, QTextEdit, QFileDialog, QScrollArea, QCompleter
+)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
 from configparser import ConfigParser
 from database.db import DatabaseManager
 import hashlib
 
 class TabInregistrare(QWidget):
     transfer_saved = pyqtSignal(str)
-    
-    def __init__(self, db: DatabaseManager, operator_name: str, config: ConfigParser):
+
+    CLASIFICARI = [
+        "Neclasificat",
+        "Secret de Serviciu",
+        "Secret",
+        "Strict Secret",
+        "Strict Secret de Importanță Deosebită"
+    ]
+
+    MEDII_TRANSFER = [
+        "USB Flash Drive Criptat",
+        "HDD Extern Securizat",
+        "SSD Extern FIPS 140-3",
+        "Mediu Optic CD/DVD-R",
+        "Bandă Magnetică LTO",
+        "Card SD Securizat"
+    ]
+
+    def __init__(self, db: DatabaseManager, operator: dict, config: ConfigParser):
         super().__init__()
         self.db = db
-        self.operator_name = operator_name
+        self.operator = operator
         self.config = config
         self.setup_ui()
-    
+
     def setup_ui(self):
+        main_layout = QVBoxLayout(self)
+        
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         container = QWidget()
         layout = QVBoxLayout(container)
-        
-        # Header
-        header = QLabel("📝 Înregistrare Transfer Nou")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px;")
+        layout.setSpacing(15)
+
+        header = QLabel("📝 Înregistrare Transfer Media Nou")
+        header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #58a6ff; padding: 5px;")
         layout.addWidget(header)
-        
-        # ===== SURSĂ =====
-        sursa_box = QGroupBox("📤 Sursă")
-        sursa_layout = QFormLayout()
+
+        # 1. SURSĂ
+        box_src = QGroupBox("📤 Instituție & Stație Sursă (Predător)")
+        src_layout = QFormLayout()
         
         self.src_institutie = self._completer_field('institutie')
-        sursa_layout.addRow("Instituție:", self.src_institutie)
-        
-        self.src_pc = self._completer_field('pc_nume')
-        sursa_layout.addRow("PC/Sistem:", self.src_pc)
-        
+        self.src_institutie.setPlaceholderText("ex: Ministerul Apărării Naționale / UM 01234")
+        src_layout.addRow("Instituție Sursă *:", self.src_institutie)
+
+        self.src_pc = self._completer_field('pc')
+        self.src_pc.setPlaceholderText("ex: WS-OPERATIV-01 (Identificator intern PC)")
+        src_layout.addRow("Stație / Sistem Sursă *:", self.src_pc)
+
         self.src_medium = QComboBox()
-        self.src_medium.addItems(['HDD Extern', 'SSD Extern', 'Stick USB', 'DVD/CD', 'Card SD', 'Altul'])
-        sursa_layout.addRow("Tip mediu:", self.src_medium)
-        
+        self.src_medium.addItems(["HDD Intern Criptat", "SSD Intern BitLocker", "Server Local Stocare", "Stație Izolată Air-Gap"])
+        src_layout.addRow("Suport Sursă *:", self.src_medium)
+
         self.src_sn = QLineEdit()
-        sursa_layout.addRow("Serie SN:", self.src_sn)
-        
-        sursa_box.setLayout(sursa_layout)
-        layout.addWidget(sursa_box)
-        
-        # ===== PERSOANĂ =====
-        pers_box = QGroupBox("👤 Persoană Primitor")
+        self.src_sn.setPlaceholderText("Serie hardware suport sursă (opțional)")
+        src_layout.addRow("S/N Suport Sursă:", self.src_sn)
+        box_src.setLayout(src_layout)
+        layout.addWidget(box_src)
+
+        # 2. PERSOANĂ RESPONSABILĂ
+        box_pers = QGroupBox("👤 Date Persoană / Gestionar Predător")
         pers_layout = QFormLayout()
-        
+
         self.pers_nume = self._completer_field('persoana')
-        pers_layout.addRow("Nume complet *:", self.pers_nume)
-        
-        self.pers_functie = self._completer_field('functie')
-        pers_layout.addRow("Funcție:", self.pers_functie)
-        
+        self.pers_nume.setPlaceholderText("ex: Cpt. Popescu Ion")
+        pers_layout.addRow("Nume & Prenume *:", self.pers_nume)
+
+        self.pers_functie = QLineEdit()
+        self.pers_functie.setPlaceholderText("ex: Șef Birou Comunicații și Informatică")
+        pers_layout.addRow("Funcție / Grad:", self.pers_functie)
+
         self.pers_legitimatie = QLineEdit()
-        pers_layout.addRow("Nr. legitimație:", self.pers_legitimatie)
-        
+        self.pers_legitimatie.setPlaceholderText("Serie/Nr. Legitimatie Serviciu")
+        pers_layout.addRow("Legitimație / ID:", self.pers_legitimatie)
+
         self.pers_autorizatie = QComboBox()
-        self.pers_autorizatie.addItems(['Nesecurizat', 'Acces Secret de Serviciu', 'Acces Secret', 'Acces Strict Secret'])
-        pers_layout.addRow("Autorizație *:", self.pers_autorizatie)
-        
-        pers_box.setLayout(pers_layout)
-        layout.addWidget(pers_box)
-        
-        # ===== MEDIU TRANSFER =====
-        mediu_box = QGroupBox("💾 Mediu de Transfer")
-        mediu_layout = QFormLayout()
-        
+        self.pers_autorizatie.addItems(self.CLASIFICARI)
+        self.pers_autorizatie.setCurrentIndex(2)
+        pers_layout.addRow("Nivel Autorizare (Clearance) *:", self.pers_autorizatie)
+        box_pers.setLayout(pers_layout)
+        layout.addWidget(box_pers)
+
+        # 3. SUPORT / MEDIU DE TRANSFER
+        box_trans = QGroupBox("💾 Suport Fizic de Transfer (Mediu Amovibil)")
+        trans_layout = QFormLayout()
+
         self.transfer_medium = QComboBox()
-        self.transfer_medium.addItems(['HDD Extern', 'SSD Extern', 'Stick USB', 'DVD/CD', 'Card SD', 'Altul'])
-        mediu_layout.addRow("Tip mediu *:", self.transfer_medium)
-        
+        self.transfer_medium.addItems(self.MEDII_TRANSFER)
+        trans_layout.addRow("Tip Mediu Amovibil *:", self.transfer_medium)
+
         self.transfer_sn = QLineEdit()
-        mediu_layout.addRow("Serie SN:", self.transfer_sn)
-        
+        self.transfer_sn.setPlaceholderText("Număr de serie fizic gravat pe suport")
+        trans_layout.addRow("Serie Hardware (S/N) *:", self.transfer_sn)
+
         self.transfer_label = QLineEdit()
-        mediu_layout.addRow("Label:", self.transfer_label)
-        
+        self.transfer_label.setPlaceholderText("Etichetă fizică de inventar (ex: USB-SEC-042)")
+        trans_layout.addRow("Etichetă / Cod Suport:", self.transfer_label)
+
         cap_layout = QHBoxLayout()
         self.transfer_cap = QDoubleSpinBox()
         self.transfer_cap.setRange(0, 10000)
         self.transfer_cap.setSuffix(" GB")
+        self.transfer_cap.setValue(32)
+        cap_layout.addWidget(QLabel("Capacitate Totală:"))
         cap_layout.addWidget(self.transfer_cap)
-        
+
         self.transfer_free = QDoubleSpinBox()
         self.transfer_free.setRange(0, 10000)
         self.transfer_free.setSuffix(" GB")
-        cap_layout.addWidget(QLabel("Liber:"))
+        self.transfer_free.setValue(30)
+        cap_layout.addWidget(QLabel("Spațiu Liber:"))
         cap_layout.addWidget(self.transfer_free)
-        
-        mediu_layout.addRow("Capacitate:", cap_layout)
-        
-        mediu_box.setLayout(mediu_layout)
-        layout.addWidget(mediu_box)
-        
-        # ===== DESTINAȚIE =====
-        dest_box = QGroupBox("📥 Destinație")
-        dest_layout = QFormLayout()
-        
+        trans_layout.addRow("Dimensiuni Mediu:", cap_layout)
+        box_trans.setLayout(trans_layout)
+        layout.addWidget(box_trans)
+
+        # 4. DESTINAȚIE
+        box_dst = QGroupBox("📥 Instituție & Sistem Destinație (Primitor)")
+        dst_layout = QFormLayout()
+
         self.dst_institutie = self._completer_field('institutie')
-        dest_layout.addRow("Instituție *:", self.dst_institutie)
-        
-        self.dst_pc = QLineEdit()
-        dest_layout.addRow("PC/Sistem:", self.dst_pc)
-        
-        dest_box.setLayout(dest_layout)
-        layout.addWidget(dest_box)
-        
-        # ===== ARHIVĂ =====
-        arhiva_box = QGroupBox("📦 Arhivă (Opțional)")
-        arhiva_layout = QFormLayout()
-        
-        self.arhiva_nume = QLineEdit()
-        arhiva_layout.addRow("Nume fișier:", self.arhiva_nume)
-        
-        self.arhiva_tip = QComboBox()
-        self.arhiva_tip.addItems(['ZIP', 'RAR', '7Z', 'ISO', 'EVTX', 'Altul'])
-        arhiva_layout.addRow("Tip:", self.arhiva_tip)
-        
-        self.arhiva_dim = QDoubleSpinBox()
-        self.arhiva_dim.setRange(0, 10000)
-        self.arhiva_dim.setSuffix(" GB")
-        arhiva_layout.addRow("Dimensiune:", self.arhiva_dim)
-        
-        self.arhiva_fisiere = QSpinBox()
-        self.arhiva_fisiere.setRange(0, 1000000)
-        arhiva_layout.addRow("Nr. fișiere:", self.arhiva_fisiere)
-        
-        hash_layout = QHBoxLayout()
-        self.arhiva_hash = QLineEdit()
-        hash_layout.addWidget(self.arhiva_hash)
-        btn_hash = QPushButton("Calculează")
-        btn_hash.clicked.connect(self._calculate_hash)
-        hash_layout.addWidget(btn_hash)
-        arhiva_layout.addRow("Hash SHA-256:", hash_layout)
-        
-        self.arhiva_desc = QTextEdit()
-        self.arhiva_desc.setMaximumHeight(80)
-        arhiva_layout.addRow("Descriere:", self.arhiva_desc)
-        
-        arhiva_box.setLayout(arhiva_layout)
-        layout.addWidget(arhiva_box)
-        
-        # ===== CLASIFICARE =====
-        clf_box = QGroupBox("⚖️ Clasificare & Conformitate")
-        clf_layout = QFormLayout()
-        
+        self.dst_institutie.setPlaceholderText("ex: Statul Major al Apărării / Structura Centrală")
+        dst_layout.addRow("Instituție Destinație *:", self.dst_institutie)
+
+        self.dst_pc = self._completer_field('pc')
+        self.dst_pc.setPlaceholderText("ex: SRV-ARHIVA-SEC-01 (opțional)")
+        dst_layout.addRow("Sistem / PC Destinație:", self.dst_pc)
+        box_dst.setLayout(dst_layout)
+        layout.addWidget(box_dst)
+
+        # 5. CONȚINUT & CLASIFICARE & HASH
+        box_content = QGroupBox("🔒 Conținut, Nivel de Clasificare & Integritate")
+        content_layout = QFormLayout()
+
         self.clasificare = QComboBox()
-        self.clasificare.addItems(['Nesecret', 'Secret de Serviciu', 'Secret', 'Strict Secret'])
-        clf_layout.addRow("Clasificare *:", self.clasificare)
-        
-        self.restrictii = QLineEdit()
-        clf_layout.addRow("Restricții:", self.restrictii)
-        
-        self.aprobare_mult = QLineEdit()
-        clf_layout.addRow("Aprobare multiplicare:", self.aprobare_mult)
-        
+        self.clasificare.addItems(self.CLASIFICARI)
+        self.clasificare.currentIndexChanged.connect(self._on_clasificare_changed)
+        content_layout.addRow("Nivel Clasificare (HG 585/2002) *:", self.clasificare)
+
+        self.lbl_preview_nr = QLabel()
+        self.lbl_preview_nr.setStyleSheet("font-weight: bold; color: #58a6ff;")
+        self._on_clasificare_changed()
+        content_layout.addRow("Format Număr Registru:", self.lbl_preview_nr)
+
         self.baza_legala = QLineEdit()
-        self.baza_legala.setPlaceholderText("Ex: HG 585/2002 Art. 73")
-        clf_layout.addRow("Bază legală:", self.baza_legala)
-        
-        clf_box.setLayout(clf_layout)
-        layout.addWidget(clf_box)
-        
-        # ===== OBSERVAȚII =====
-        obs_box = QGroupBox("📝 Observații")
-        obs_layout = QVBoxLayout()
-        
+        self.baza_legala.setText("HG 585/2002 Art. 60-65, Legea 182/2002")
+        content_layout.addRow("Bază Legală / Ordin:", self.baza_legala)
+
+        self.nr_aprobare = QLineEdit()
+        self.nr_aprobare.setPlaceholderText("ex: Aprobare CSTIC/ORNISS nr. 1234/2026")
+        content_layout.addRow("Nr. Aprobare Transfer:", self.nr_aprobare)
+
+        self.arhiva_nume = QLineEdit()
+        self.arhiva_nume.setPlaceholderText("ex: Date_Misiune_2026.enc sau Nume_Pachet.tar.gz")
+        content_layout.addRow("Denumire Pachet / Arhivă:", self.arhiva_nume)
+
+        hash_box = QHBoxLayout()
+        self.arhiva_hash = QLineEdit()
+        self.arhiva_hash.setPlaceholderText("Hash SHA-256 al fișierului transferat")
+        self.btn_calc_hash = QPushButton("📁 Alege Fișier & Calculează Hash")
+        self.btn_calc_hash.clicked.connect(self._calculate_file_hash)
+        hash_box.addWidget(self.arhiva_hash)
+        hash_box.addWidget(self.btn_calc_hash)
+        content_layout.addRow("Amprentă Digitală SHA-256:", hash_box)
+
         self.observatii = QTextEdit()
-        self.observatii.setMaximumHeight(100)
-        self.observatii.setPlaceholderText("Observații suplimentare...")
-        obs_layout.addWidget(self.observatii)
+        self.observatii.setPlaceholderText("Mențiuni suplimentare privind regimul de securitate...")
+        self.observatii.setMaximumHeight(70)
+        content_layout.addRow("Observații:", self.observatii)
+
+        box_content.setLayout(content_layout)
+        layout.addWidget(box_content)
+
+        btn_box = QHBoxLayout()
+        self.btn_reset = QPushButton("Curăță Formular")
+        self.btn_reset.clicked.connect(self.reset_form)
         
-        obs_box.setLayout(obs_layout)
-        layout.addWidget(obs_box)
-        
-        # ===== BUTOANE =====
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        
-        btn_reset = QPushButton("🔄 Resetare")
-        btn_reset.clicked.connect(self.reset_form)
-        btn_layout.addWidget(btn_reset)
-        
-        btn_save = QPushButton("💾 Salvare")
-        btn_save.setStyleSheet("""
-            QPushButton {
-                background-color: #2563eb;
-                color: white;
-                padding: 10px 30px;
-                font-size: 11pt;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #1d4ed8;
-            }
-        """)
-        btn_save.clicked.connect(self._save_transfer)
-        btn_layout.addWidget(btn_save)
-        
-        layout.addLayout(btn_layout)
-        
+        self.btn_save = QPushButton("💾 Salvează & Generează Număr Registru")
+        self.btn_save.setObjectName("btn_primary")
+        self.btn_save.setFixedHeight(40)
+        self.btn_save.clicked.connect(self._save_transfer)
+
+        btn_box.addWidget(self.btn_reset)
+        btn_box.addWidget(self.btn_save)
+        layout.addLayout(btn_box)
+
         scroll.setWidget(container)
-        
-        main_layout = QVBoxLayout(self)
         main_layout.addWidget(scroll)
-    
+
+    def _on_clasificare_changed(self):
+        clf = self.clasificare.currentText()
+        prefix_sec = DatabaseManager.PREFIX_MAP.get(clf, 'NC')
+        an = self.config.get('General', 'prefix_nr', fallback='MAPN')
+        self.lbl_preview_nr.setText(f"{an}-YYYY-{prefix_sec}-NNNN (Conform Art. 41 HG 585/2002)")
+
     def _completer_field(self, category: str) -> QLineEdit:
-        """Creează LineEdit cu autocomplete."""
         field = QLineEdit()
-        completer = QCompleter(self.db.get_autocomplete(category))
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        field.setCompleter(completer)
+        items = self.db.get_autocomplete(category)
+        if items:
+            completer = QCompleter(items)
+            completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+            field.setCompleter(completer)
         return field
-    
-    def _calculate_hash(self):
-        """Calculează hash-ul unui fișier."""
-        file_path, _ = QFileDialog.getOpenFileName(self, "Selectare fișier arhivă")
+
+    def _calculate_file_hash(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Selectare Fișier pentru Calcul Integritate SHA-256")
         if file_path:
             try:
                 hasher = hashlib.sha256()
                 with open(file_path, 'rb') as f:
                     while chunk := f.read(65536):
                         hasher.update(chunk)
-                
-                self.arhiva_hash.setText(hasher.hexdigest())
-                QMessageBox.information(self, "Succes", f"Hash calculat pentru:\n{file_path}")
+                h = hasher.hexdigest()
+                self.arhiva_hash.setText(h)
+                if not self.arhiva_nume.text():
+                    from pathlib import Path
+                    self.arhiva_nume.setText(Path(file_path).name)
+                QMessageBox.information(self, "Integritate Calculată", f"Hash SHA-256 generat cu succes:\\n\\n{h}")
             except Exception as e:
-                QMessageBox.critical(self, "Eroare", f"Eroare calcul hash:\n{str(e)}")
-    
+                QMessageBox.critical(self, "Eroare Hash", f"Nu s-a putut citi fișierul:\\n{str(e)}")
+
     def _save_transfer(self):
-        """Salvează transferul în bază de date."""
-        # Validare câmpuri obligatorii
-        if not self.src_institutie.text():
+        if not self.src_institutie.text().strip():
             QMessageBox.warning(self, "Validare", "Instituția sursă este obligatorie!")
             return
-        
-        if not self.src_pc.text():
-            QMessageBox.warning(self, "Validare", "PC/Sistem sursă este obligatoriu!")
+        if not self.src_pc.text().strip():
+            QMessageBox.warning(self, "Validare", "Stația / sistemul sursă este obligatoriu!")
             return
-        
-        if not self.pers_nume.text():
-            QMessageBox.warning(self, "Validare", "Numele persoanei este obligatoriu!")
+        if not self.pers_nume.text().strip():
+            QMessageBox.warning(self, "Validare", "Numele persoanei predătoare este obligatoriu!")
             return
-        
-        if not self.dst_institutie.text():
+        if not self.transfer_sn.text().strip():
+            QMessageBox.warning(self, "Validare", "Seria hardware a mediului de transfer este obligatorie!")
+            return
+        if not self.dst_institutie.text().strip():
             QMessageBox.warning(self, "Validare", "Instituția destinație este obligatorie!")
             return
-        
-        try:
-            # Generare număr registru
-            prefix = self.config.get('General', 'prefix_nr', fallback='MAPN')
-            nr = self.db.get_next_nr(prefix)
-            
-            # Construire dicționar date
-            data = {
-                'nr': nr,
-                'src_institutie': self.src_institutie.text(),
-                'src_pc_nume': self.src_pc.text(),
-                'src_medium': self.src_medium.currentText(),
-                'src_sn': self.src_sn.text() or None,
-                'src_path': None,
-                
-                'pers_nume': self.pers_nume.text(),
-                'pers_functie': self.pers_functie.text() or None,
-                'pers_legitimatie': self.pers_legitimatie.text() or None,
-                'pers_autorizatie': self.pers_autorizatie.currentText(),
-                
-                'transfer_medium': self.transfer_medium.currentText(),
-                'transfer_sn': self.transfer_sn.text() or None,
-                'transfer_label': self.transfer_label.text() or None,
-                'transfer_cap_gb': self.transfer_cap.value() or None,
-                'transfer_free_gb': self.transfer_free.value() or None,
-                
-                'dst_institutie': self.dst_institutie.text(),
-                'dst_pc_nume': self.dst_pc.text() or None,
-                'dst_medium': None,
-                'dst_sn': None,
-                'dst_path': None,
-                
-                'arhiva_nume': self.arhiva_nume.text() or None,
-                'arhiva_tip': self.arhiva_tip.currentText() if self.arhiva_nume.text() else None,
-                'arhiva_dim_gb': self.arhiva_dim.value() if self.arhiva_nume.text() else None,
-                'arhiva_fisiere': self.arhiva_fisiere.value() if self.arhiva_nume.text() else None,
-                'arhiva_hash': self.arhiva_hash.text() or None,
-                'arhiva_descriere': self.arhiva_desc.toPlainText() or None,
-                
-                'clasificare': self.clasificare.currentText(),
-                'restrictii': self.restrictii.text() or None,
-                'aprobare_mult': self.aprobare_mult.text() or None,
-                'baza_legala': self.baza_legala.text() or None,
-                
-                'log_medium': None,
-                'log_path': None,
-                
-                'status': 'active',
-                'observatii': self.observatii.toPlainText() or None,
-                'semnat_operator': 0,
-                'data_verif_anual': None,
-                'verificat_de': None
-            }
-            
-            # Salvare
-            transfer_id = self.db.insert_transfer(data, self.operator_name)
-            
-            # Emit signal
-            self.transfer_saved.emit(transfer_id)
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Eroare", f"Eroare salvare:\n{str(e)}")
-    
-    def reset_form(self):
-        """Resetează formularul."""
-        # Reset câmpuri text
-        for widget in self.findChildren(QLineEdit):
-            widget.clear()
-        
-        for widget in self.findChildren(QTextEdit):
-            widget.clear()
-        
-        # Reset spinboxes
-        for widget in self.findChildren((QSpinBox, QDoubleSpinBox)):
-            widget.setValue(0)
-        
-        # Reset comboboxes la primul item
-        for widget in self.findChildren(QComboBox):
-            widget.setCurrentIndex(0)
 
+        prefix_inst = self.config.get('General', 'prefix_nr', fallback='MAPN')
+        clf = self.clasificare.currentText()
+
+        data = {
+            'src_institutie': self.src_institutie.text().strip(),
+            'src_pc_nume': self.src_pc.text().strip(),
+            'src_medium': self.src_medium.currentText(),
+            'src_sn': self.src_sn.text().strip() or None,
+            'pers_nume': self.pers_nume.text().strip(),
+            'pers_functie': self.pers_functie.text().strip() or None,
+            'pers_legitimatie': self.pers_legitimatie.text().strip() or None,
+            'pers_autorizatie': self.pers_autorizatie.currentText(),
+            'transfer_medium': self.transfer_medium.currentText(),
+            'transfer_sn': self.transfer_sn.text().strip(),
+            'transfer_label': self.transfer_label.text().strip() or None,
+            'transfer_cap_gb': self.transfer_cap.value(),
+            'transfer_free_gb': self.transfer_free.value(),
+            'dst_institutie': self.dst_institutie.text().strip(),
+            'dst_pc_nume': self.dst_pc.text().strip() or None,
+            'arhiva_nume': self.arhiva_nume.text().strip() or None,
+            'arhiva_hash': self.arhiva_hash.text().strip() or None,
+            'clasificare': clf,
+            'baza_legala': self.baza_legala.text().strip() or None,
+            'nr_aprobare': self.nr_aprobare.text().strip() or None,
+            'status': 'activ',
+            'observatii': self.observatii.toPlainText().strip() or None
+        }
+
+        try:
+            tid = self.db.insert_transfer(data, self.operator['nume'], self.operator['id'], prefix_inst)
+            rec = self.db.get_transfer_by_id(tid)
+            QMessageBox.information(
+                self, "Salvat cu Succes",
+                f"Înregistrarea a fost creată conform normelor:\\n\\n"
+                f"📋 Număr Registru: {rec['nr']}\\n"
+                f"🔒 Clasificare: {rec['clasificare']}\\n"
+                f"🛡️ Hash Integritate: {rec['hash_inregistrare'][:20]}...\\n\\n"
+                f"Înregistrarea este acum disponibilă în tab-ul Registru Transferuri."
+            )
+            self.reset_form()
+            self.transfer_saved.emit(tid)
+        except Exception as e:
+            QMessageBox.critical(self, "Eroare la Salvare", f"Eroare internă:\\n{str(e)}")
+
+    def reset_form(self):
+        for w in self.findChildren(QLineEdit):
+            w.clear()
+        for w in self.findChildren(QTextEdit):
+            w.clear()
+        self.baza_legala.setText("HG 585/2002 Art. 60-65, Legea 182/2002")
+        self.transfer_cap.setValue(32)
+        self.transfer_free.setValue(30)
+        self.clasificare.setCurrentIndex(0)

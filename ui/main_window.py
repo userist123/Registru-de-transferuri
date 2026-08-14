@@ -1,66 +1,63 @@
-"""Fereastra principală"""
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QTabWidget, QLabel, QStatusBar
+from PyQt6.QtWidgets import (
+    QMainWindow, QTabWidget, QStatusBar, QLabel, QMessageBox
+)
 from PyQt6.QtCore import Qt
+from configparser import ConfigParser
+from database.db import DatabaseManager
 from ui.widgets.tab_inregistrare import TabInregistrare
-from ui.widgets.stats_widget import StatsWidget
+from ui.widgets.tab_registru import TabRegistru
+from ui.widgets.tab_medii import TabMediiStocare
+from ui.widgets.tab_audit import TabAudit
+from ui.widgets.tab_admin import TabAdmin
+from ui.theme import DARK_THEME
 
 class MainWindow(QMainWindow):
-    def __init__(self, db, config, operator: str):
+    def __init__(self, db: DatabaseManager, operator: dict, config: ConfigParser):
         super().__init__()
         self.db = db
-        self.config = config
         self.operator = operator
-        self._setup_ui()
-    
-    def _setup_ui(self):
-        self.setWindowTitle(f"Registru Transferuri - {self.config.get('General', 'institutie')}")
-        self.setMinimumSize(1100, 700)
-        self.resize(1280, 800)
+        self.config = config
+        self.setup_ui()
+        self.setStyleSheet(DARK_THEME)
+
+    def setup_ui(self):
+        inst_nume = self.config.get('General', 'institutie', fallback='Ministerul Apărării Naționale')
+        self.setWindowTitle(f"Registru Transferuri Media v3.0 - {inst_nume}")
+        self.resize(1200, 800)
+
+        self.tabs = QTabWidget()
         
-        central = QWidget()
-        layout = QVBoxLayout(central)
-        
-        header = QLabel(f"📋 Registru Transferuri - Operator: {self.operator}")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px; background: #1a1d27; color: #e8eaf0;")
-        layout.addWidget(header)
-        
-        tabs = QTabWidget()
-        
-        self.tab_inregistrare = TabInregistrare(self.db, self.operator, self.config)
-        self.tab_inregistrare.transfer_saved.connect(self._on_saved)
-        
-        self.stats_widget = StatsWidget(self.db)
-        
-        tabs.addTab(self.tab_inregistrare, "📝 Înregistrare Nouă")
-        tabs.addTab(self.stats_widget, "📊 Statistici")
-        
-        layout.addWidget(tabs)
-        
-        self.setCentralWidget(central)
-        
-        sb = QStatusBar()
-        sb.showMessage("Aplicație pornită - baza de date conectată")
-        self.setStatusBar(sb)
-        
-        self._apply_dark_theme()
-    
-    def _apply_dark_theme(self):
-        self.setStyleSheet("""
-            QMainWindow, QWidget { background: #0f1117; color: #e8eaf0; font-size: 13px; }
-            QTabWidget::pane { border: 1px solid #2e3144; background: #1a1d27; }
-            QTabBar::tab { background: #0f1117; color: #8b91a8; padding: 8px 18px; border-bottom: 2px solid transparent; }
-            QTabBar::tab:selected { color: #e8eaf0; border-bottom: 2px solid #4f7ef8; background: #1a1d27; }
-            QLineEdit, QTextEdit, QComboBox, QSpinBox, QDoubleSpinBox {
-                background: #252836; border: 1px solid #2e3144; border-radius: 4px; padding: 6px; color: #e8eaf0;
-            }
-            QPushButton {
-                background: #252836; border: 1px solid #2e3144; border-radius: 4px;
-                padding: 7px 16px; color: #e8eaf0;
-            }
-            QPushButton:hover { background: #2e3350; border-color: #4f7ef8; }
-            QGroupBox { border: 1px solid #2e3144; border-radius: 6px; margin-top: 8px; padding-top: 10px; color: #8b91a8; }
-        """)
-    
-    def _on_saved(self, transfer_id: str):
-        self.stats_widget.load_stats()
-        self.statusBar().showMessage(f"Transfer salvat: {transfer_id[:8]}...", 3000)
+        self.tab_inreg = TabInregistrare(self.db, self.operator, self.config)
+        self.tab_reg = TabRegistru(self.db, self.operator, self.config)
+        self.tab_medii = TabMediiStocare(self.db, self.operator)
+        self.tab_audit = TabAudit(self.db, self.operator)
+        self.tab_admin = TabAdmin(self.db, self.operator, self.config)
+
+        self.tabs.addTab(self.tab_inreg, "📝 Înregistrare Transfer")
+        self.tabs.addTab(self.tab_reg, "📋 Registru Transferuri")
+        self.tabs.addTab(self.tab_medii, "💽 Inventar Medii & Distrugere")
+        self.tabs.addTab(self.tab_audit, "🛡️ Jurnal Audit Criptografic")
+        self.tabs.addTab(self.tab_admin, "⚙️ Administrare & Backup")
+
+        self.tab_inreg.transfer_saved.connect(self._on_transfer_saved)
+
+        self.setCentralWidget(self.tabs)
+
+        self.status = QStatusBar()
+        self.setStatusBar(self.status)
+
+        self.lbl_op_info = QLabel(f"👤 Operator Conectat: <b>{self.operator['nume']}</b> ({self.operator['rol'].upper()}) | Nivel Clearance: <span style='color: #58a6ff;'><b>{self.operator['autorizatie']}</b></span>")
+        self.status.addWidget(self.lbl_op_info)
+
+        self.lbl_sec_info = QLabel("🔒 Sistem Conformitate: HG 585/2002 | Legea 182/2002 | NIST SP 800-88")
+        self.lbl_sec_info.setStyleSheet("color: #8b949e; margin-right: 15px;")
+        self.status.addPermanentWidget(self.lbl_sec_info)
+
+    def _on_transfer_saved(self, transfer_id: str):
+        self.tab_reg.load_data()
+        self.tab_audit.load_data()
+
+    def closeEvent(self, event):
+        self.db._log_audit(None, "LOGOUT", self.operator['nume'], f"Deconectare operator {self.operator['nume']}", op_id=self.operator['id'])
+        self.db.close()
+        event.accept()

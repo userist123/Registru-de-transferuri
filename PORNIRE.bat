@@ -1,19 +1,12 @@
 @echo off
-echo ========================================
-echo   REGISTRU TRANSFERURI MEDIA v2.0
-echo ========================================
-echo.
-
-echo [1/2] Verificare Python...
+title Registru Transferuri Media v3.0
+echo Verificare Python...
 python --version >nul 2>&1
-if errorlevel 1 (
-    echo EROARE: Python nu este instalat!
-    echo Descarca Python de la: https://www.python.org/downloads/
+if %errorlevel% neq 0 (
+    echo Python nu este instalat sau nu este in PATH!
     pause
-    exit /b 1
+    exit /b
 )
-
-echo [2/2] Pornire aplicatie...
+echo Pornire aplicatie Registru Transferuri Media v3.0...
 python main.py
-
 pause
