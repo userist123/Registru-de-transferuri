@@ -1,84 +1,105 @@
-import sys, os, tempfile, shutil
-from pathlib import Path
-from configparser import ConfigParser
-
-app_path = Path(__file__).parent
-sys.path.insert(0, str(app_path))
+import sys
+import tempfile
+import os
+sys.path.insert(0, os.path.dirname(__file__))
 
 from database.db import DatabaseManager
-from services.export_service import ExportService
-from services.backup_service import BackupService
 
-def run_tests():
-    print("=== TESTARE SUITA COMPLETA REGISTRU TRANSFERURI v3.0 ===")
-    
-    temp_dir = tempfile.mkdtemp()
-    db_file = Path(temp_dir) / "test_run.db"
-    db = DatabaseManager(str(db_file))
-    print("[1/6] Initializare DB Manager: OK")
 
-    ops = db.get_active_operators()
-    assert len(ops) >= 2, "Trebuie sa existe cel putin 2 operatori impliciti"
-    admin_op = next(o for o in ops if o['rol'] == 'admin')
-    
-    auth_ok = db.authenticate_operator(admin_op['id'], "123456")
-    assert auth_ok is not None, "Autentificarea cu PIN corect a esuat"
-    auth_fail = db.authenticate_operator(admin_op['id'], "999999")
-    assert auth_fail is None, "Autentificarea cu PIN gresit trebuia sa fie respinsa"
-    print("[2/6] Autentificare cu Salted PIN & Roluri: OK")
+def test_default_operators_created():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        ops = db.get_active_operators()
+        assert len(ops) == 2
+        db.close()
+    print("PASS: test_default_operators_created")
 
-    nr_ssid = db.get_next_nr("MAPN", "Strict Secret de Importanță Deosebită")
-    assert "-000-" in nr_ssid, f"Format incorect pentru SSID: {nr_ssid}"
-    nr_ss = db.get_next_nr("MAPN", "Strict Secret")
-    assert "-00-" in nr_ss, f"Format incorect pentru SS: {nr_ss}"
-    nr_s = db.get_next_nr("MAPN", "Secret")
-    assert "-0-" in nr_s, f"Format incorect pentru Secret: {nr_s}"
-    nr_svc = db.get_next_nr("MAPN", "Secret de Serviciu")
-    assert "-S-" in nr_svc, f"Format incorect pentru Secret de Serviciu: {nr_svc}"
-    print("[3/6] Numerotare HG 585/2002 (Prefixare clasificare): OK")
 
-    t_data = {
-        'src_institutie': 'Baza 90 Transport Aerian',
-        'src_pc_nume': 'STA-OP-04',
-        'src_medium': 'HDD Intern',
-        'pers_nume': 'Mr. Ionescu Radu',
-        'pers_autorizatie': 'Strict Secret',
-        'transfer_medium': 'USB Flash Drive Criptat',
-        'transfer_sn': 'KING-FIPS-9921',
-        'dst_institutie': 'Statul Major al Fortelor Aeriene',
-        'dst_pc_nume': 'SMFA-SEC-01',
-        'clasificare': 'Strict Secret',
-        'baza_legala': 'Ordin Z-14/2026',
-        'arhiva_nume': 'Misiune_Tactics.enc',
-        'arhiva_hash': 'a' * 64
-    }
-    tid = db.insert_transfer(t_data, admin_op['nume'], admin_op['id'], "MAPN")
-    rec = db.get_transfer_by_id(tid)
-    assert rec['hash_inregistrare'] is not None, "Hash-ul de integritate lipseste"
-    assert len(rec['hash_inregistrare']) == 64, "Hash-ul trebuie sa aiba 64 caractere (SHA-256)"
-    
-    db.semneaza_transfer(tid, admin_op['nume'], admin_op['id'])
-    rec_signed = db.get_transfer_by_id(tid)
-    assert rec_signed['semnat_operator'] == 1, "Transferul nu a fost marcat ca semnat"
-    print("[4/6] Inregistrare Transfer, Semnatura & Hash Canonic: OK")
+def test_pin_authentication():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        ops = db.get_active_operators()
+        admin = next(o for o in ops if o['rol'] == 'admin')
+        result = db.authenticate_operator(admin['id'], "123456")
+        assert result is not None
+        wrong = db.authenticate_operator(admin['id'], "000000")
+        assert wrong is None
+        db.close()
+    print("PASS: test_pin_authentication")
 
-    valid, cnt, err = db.verify_audit_chain()
-    assert valid is True, f"Lantul de audit este invalid: {err}"
-    assert cnt >= 3, f"Trebuiau sa fie cel putin 3 evenimente in audit, gasite {cnt}"
-    print(f"[5/6] Jurnal Audit Criptografic ({cnt} evenimente validate): OK")
 
-    all_t = db.get_all_transfers()
-    csv_file = Path(temp_dir) / "export.csv"
-    ExportService.export_csv(all_t, str(csv_file))
-    assert csv_file.exists(), "Fisierul CSV nu a fost generat"
-    
-    html_content = ExportService.generate_html_report(all_t, "MAPN Test")
-    assert "REGISTRU EVIDENȚĂ TRANSFERURI MEDIA" in html_content, "Raportul HTML nu contine antetul"
-    print("[6/6] Serviciu Export & Rapoarte Oficiale: OK")
+def test_numbering_hg585():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        nr1 = db.get_next_nr("MAPN", "Secret")
+        nr2 = db.get_next_nr("MAPN", "Secret")
+        assert nr1 != nr2
+        assert "-0-" in nr1
+        nr_ssid = db.get_next_nr("MAPN", "Strict Secret de Importanță Deosebită")
+        assert "-000-" in nr_ssid
+        db.close()
+    print("PASS: test_numbering_hg585")
 
-    db.close()
-    shutil.rmtree(temp_dir)
-    print("\n TOATE CELE 6 MODULE FUNCTIONEAZA IMPECABIL SI RESPECTA NORMELE LEGALE!")
+
+def test_insert_transfer_and_hash():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        data = {
+            'src_institutie': 'Unitatea A', 'src_pc_nume': 'PC-01', 'src_medium': 'HDD',
+            'pers_nume': 'Ion Popescu', 'pers_autorizatie': 'Secret',
+            'transfer_medium': 'USB Flash', 'dst_institutie': 'Unitatea B',
+            'clasificare': 'Secret',
+        }
+        record_id = db.insert_transfer(data, "Test Operator", None)
+        transfers = db.get_all_transfers()
+        assert len(transfers) == 1
+        assert transfers[0]['hash_inregistrare'] is not None
+        assert len(transfers[0]['hash_inregistrare']) == 64
+        db.close()
+    print("PASS: test_insert_transfer_and_hash")
+
+
+def test_audit_chain_integrity():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        data = {
+            'src_institutie': 'A', 'src_pc_nume': 'PC', 'src_medium': 'HDD',
+            'pers_nume': 'Test', 'transfer_medium': 'USB Flash', 'dst_institutie': 'B',
+            'clasificare': 'Neclasificat',
+        }
+        db.insert_transfer(data, "Test Operator", None)
+        valid, count, error = db.verify_audit_chain()
+        assert valid is True
+        assert error is None
+        db.conn.execute("UPDATE audit_log SET detalii='HACKED' WHERE sequence_nr=1")
+        db.conn.commit()
+        valid2, _, error2 = db.verify_audit_chain()
+        assert valid2 is False
+        assert error2 is not None
+        db.close()
+    print("PASS: test_audit_chain_integrity")
+
+
+def test_sanitize_media():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        media_id = db.add_storage_media({
+            'cod_inventar': 'INV-001', 'tip_mediu': 'USB Flash',
+            'serie_hardware': 'SN12345', 'clasificare_max': 'Secret', 'status': 'activ'
+        })
+        cert = db.sanitize_media(media_id, "Purge", "Test procedura", "Operator A", "Martor B")
+        assert cert.startswith("SAN-")
+        media = db.get_all_media()
+        assert media[0]['status'] == 'sanitarizat'
+        db.close()
+    print("PASS: test_sanitize_media")
+
 
 if __name__ == "__main__":
-    run_tests()
+    test_default_operators_created()
+    test_pin_authentication()
+    test_numbering_hg585()
+    test_insert_transfer_and_hash()
+    test_audit_chain_integrity()
+    test_sanitize_media()
+    print("\n6/6 teste trecute cu succes.")

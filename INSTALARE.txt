@@ -1,37 +1,29 @@
-GHID INSTALARE SI UTILIZARE - REGISTRU TRANSFERURI MEDIA v3.0
-================================================================
+INSTALARE REGISTRU TRANSFERURI MEDIA v3.1
+===========================================
 
-CERINTE DE SISTEM:
-- Windows 10/11 sau Linux (Ubuntu/Debian)
-- Python 3.10+ instalat
-- Mediu Air-Gapped sau retea interna securizata
+1. Cerințe:
+   - Python 3.11 sau mai nou
+   - pip
 
-INSTALARE RAPIDA:
-1. Deschideti terminalul / PowerShell in acest director.
-2. Instalati dependentele:
+2. Instalare dependențe:
    pip install -r requirements.txt
 
-3. Rulati aplicatia:
-   - Pe Windows: dublu-click pe PORNIRE.bat sau rulati "python main.py"
-   - Pe Linux: rulati "./pornire.sh" sau "python3 main.py"
+3. Rulare:
+   Windows: dublu-click pe PORNIRE.bat
+   Linux/Mac: ./pornire.sh sau python3 main.py
 
-CONTURI IMPLICITE INITIALE:
-- Administrator Sistem:
-  Rol: Admin (Acces total configurare si operatori)
-  Clearance: Strict Secret de Importanță Deosebită
-  PIN Implicit: 123456
+4. Prima autentificare:
+   - Selectați "Administrator Sistem" din lista de operatori
+   - Introduceți PIN-ul implicit: 123456
+   - Mergeți la tab-ul "Administrare" și schimbați PIN-urile implicite
+   - Creați conturi individuale pentru fiecare operator real
 
-- Operator Registru:
-  Rol: Operator Transferuri
-  Clearance: Secret
-  PIN Implicit: 111111
+5. Configurare instituție:
+   - Editați config.ini pentru a seta numele și prefixul instituției dvs.
 
-NOUTATI VERSIUNEA v3.0:
-- Dialog Login cu PIN criptat (SHA-256 + Salt individual)
-- Numerotare conform HG 585/2002 Art. 41 (MAPN-YYYY-000-NNNN / 00-NNNN / 0-NNNN / S-NNNN)
-- Tab Registru complet cu cautare live, filtrare, vizualizare fisa detaliata
-- Modul Inventar Medii de Stocare Fizice & Casare/Sanitarizare (NIST SP 800-88)
-- Lant Criptografic de Audit (Tamper-evident Hash Chain) cu buton de verificare
-- Semnare formala transferuri cu PIN si anulare cu justificare obligatorie
-- Export Raport Oficial (HTML gata de tipar/PDF si CSV)
-- Sistem automat de Backup cu rotatie de arhive.
+6. Backup:
+   - Backup-urile se pot crea manual din tab-ul Administrare
+   - Se recomandă backup extern periodic (medii detașabile securizate)
+
+IMPORTANT: Baza de date locală (transferuri.db) conține informații clasificate.
+Asigurați stocarea acesteia pe un sistem izolat (air-gapped), conform politicii de securitate a instituției.

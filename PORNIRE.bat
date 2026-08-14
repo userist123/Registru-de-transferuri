@@ -1,12 +1,13 @@
 @echo off
-title Registru Transferuri Media v3.0
-echo Verificare Python...
-python --version >nul 2>&1
+echo ============================================
+echo  Registru Transferuri Media v3.1
+echo ============================================
+where python >nul 2>nul
 if %errorlevel% neq 0 (
-    echo Python nu este instalat sau nu este in PATH!
+    echo Python nu este instalat sau nu este in PATH.
     pause
-    exit /b
+    exit /b 1
 )
-echo Pornire aplicatie Registru Transferuri Media v3.0...
+pip install -r requirements.txt --quiet
 python main.py
 pause

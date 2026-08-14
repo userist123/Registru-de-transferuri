@@ -1,47 +1,43 @@
 import sys
+import configparser
 from pathlib import Path
-from configparser import ConfigParser
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication
 from database.db import DatabaseManager
+from ui.theme import DARK_STYLE
 from ui.login_dialog import LoginDialog
 from ui.main_window import MainWindow
 
-def load_config() -> ConfigParser:
-    config = ConfigParser()
+
+def load_config() -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
     config_path = Path(__file__).parent / "config.ini"
-    if not config_path.exists():
-        config['General'] = {
-            'institutie': 'Ministerul Apărării Naționale',
-            'prefix_nr': 'MAPN',
-            'auto_backup_on_close': 'true',
-            'verificare_hash_startup': 'true'
-        }
-        with open(config_path, 'w', encoding='utf-8') as f:
-            config.write(f)
-    else:
+    if config_path.exists():
         config.read(config_path, encoding='utf-8')
+    else:
+        config['institutie'] = {'nume': 'MAPN', 'prefix': 'MAPN'}
+        config['database'] = {'path': 'transferuri.db'}
     return config
+
 
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("Registru Transferuri Media v3.0")
+    app.setStyleSheet(DARK_STYLE)
 
     config = load_config()
-    db_path = Path(__file__).parent / "transferuri.db"
-    db = DatabaseManager(str(db_path))
+    db_path = config.get('database', 'path', fallback='transferuri.db')
+    db = DatabaseManager(db_path)
 
     login = LoginDialog(db)
     if login.exec() != LoginDialog.DialogCode.Accepted:
         sys.exit(0)
 
-    operator = login.authenticated_operator
-    if not operator:
-        sys.exit(0)
-
-    window = MainWindow(db, operator, config)
+    window = MainWindow(db, login.authenticated_operator, config)
     window.show()
 
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    db.close()
+    sys.exit(exit_code)
+
 
 if __name__ == "__main__":
     main()

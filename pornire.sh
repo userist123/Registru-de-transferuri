@@ -1,3 +1,3 @@
 #!/bin/bash
-echo "Pornire Registru Transferuri Media v3.0..."
+pip3 install -r requirements.txt --quiet
 python3 main.py

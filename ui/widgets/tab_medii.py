@@ -1,204 +1,135 @@
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QComboBox, QMessageBox, QTableWidget, QTableWidgetItem,
-    QHeaderView, QGroupBox, QFormLayout, QDoubleSpinBox, QInputDialog, QDialog
-)
-from PyQt6.QtCore import Qt
-from database.db import DatabaseManager
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit,
+                              QComboBox, QDoubleSpinBox, QPushButton, QTableWidget,
+                              QTableWidgetItem, QMessageBox, QGroupBox, QHeaderView,
+                              QInputDialog, QTextEdit)
 
-class TabMediiStocare(QWidget):
-    def __init__(self, db: DatabaseManager, operator: dict):
+
+TIPURI_MEDIU = ["USB Flash", "HDD Extern", "SSD Extern", "Optic (CD/DVD)", "Card SD", "Volum Criptat/Virtual"]
+CLASIFICARI = ["Neclasificat", "Secret de Serviciu", "Secret", "Strict Secret", "Strict Secret de Importanță Deosebită"]
+METODE_SANITIZARE = ["Clear", "Purge", "Cryptographic Erase", "Destroy"]
+
+
+class TabMedii(QWidget):
+    def __init__(self, db_manager, operator):
         super().__init__()
-        self.db = db
+        self.db = db_manager
         self.operator = operator
-        self.setup_ui()
-        self.load_data()
+        self.current_media = []
+        self._build_ui()
+        self.refresh()
 
-    def setup_ui(self):
+    def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
 
-        header = QLabel("💽 Inventar Medii de Stocare & Ciclu de Viață (NIST SP 800-88)")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #58a6ff;")
-        layout.addWidget(header)
+        grp_add = QGroupBox("Adaugă Mediu Nou în Inventar")
+        form = QFormLayout(grp_add)
+        self.inp_cod = QLineEdit()
+        self.inp_cod.setPlaceholderText("Ex: INV-2026-0001")
+        self.inp_tip = QComboBox()
+        self.inp_tip.addItems(TIPURI_MEDIU)
+        self.inp_producator = QLineEdit()
+        self.inp_model = QLineEdit()
+        self.inp_serie = QLineEdit()
+        self.inp_capacitate = QDoubleSpinBox()
+        self.inp_capacitate.setMaximum(999999)
+        self.inp_capacitate.setSuffix(" GB")
+        self.inp_clasificare_max = QComboBox()
+        self.inp_clasificare_max.addItems(CLASIFICARI)
+        self.inp_locatie = QLineEdit()
 
-        box_add = QGroupBox("➕ Înregistrare Suport Fizic Nou în Inventar")
-        form = QFormLayout()
+        form.addRow("Cod Inventar *:", self.inp_cod)
+        form.addRow("Tip Mediu:", self.inp_tip)
+        form.addRow("Producător:", self.inp_producator)
+        form.addRow("Model:", self.inp_model)
+        form.addRow("Serie Hardware *:", self.inp_serie)
+        form.addRow("Capacitate:", self.inp_capacitate)
+        form.addRow("Clasificare Max.:", self.inp_clasificare_max)
+        form.addRow("Locație Fizică:", self.inp_locatie)
 
-        row1 = QHBoxLayout()
-        self.txt_cod = QLineEdit()
-        self.txt_cod.setPlaceholderText("ex: USB-SEC-001")
-        self.cb_tip = QComboBox()
-        self.cb_tip.addItems(["USB Flash Drive", "HDD Extern Securizat", "SSD Extern", "Card SD", "Mediu Optic CD/DVD", "Bandă LTO"])
-        row1.addWidget(QLabel("Cod Inventar *:"), 0)
-        row1.addWidget(self.txt_cod, 1)
-        row1.addWidget(QLabel("Tip Mediu *:"), 0)
-        row1.addWidget(self.cb_tip, 1)
-        form.addRow(row1)
+        btn_add = QPushButton("➕ Adaugă în Inventar")
+        btn_add.setObjectName("primary")
+        btn_add.clicked.connect(self._add_media)
+        form.addRow(btn_add)
 
-        row2 = QHBoxLayout()
-        self.txt_sn = QLineEdit()
-        self.txt_sn.setPlaceholderText("Serie unică gravată de producător")
-        self.cb_clf = QComboBox()
-        self.cb_clf.addItems(["Neclasificat", "Secret de Serviciu", "Secret", "Strict Secret", "Strict Secret de Importanță Deosebită"])
-        row2.addWidget(QLabel("Serie Hardware (S/N) *:"), 0)
-        row2.addWidget(self.txt_sn, 1)
-        row2.addWidget(QLabel("Clasificare Maximă Admisă:"), 0)
-        row2.addWidget(self.cb_clf, 1)
-        form.addRow(row2)
-
-        row3 = QHBoxLayout()
-        self.sp_cap = QDoubleSpinBox()
-        self.sp_cap.setRange(1, 100000)
-        self.sp_cap.setValue(64)
-        self.sp_cap.setSuffix(" GB")
-        self.txt_loc = QLineEdit()
-        self.txt_loc.setPlaceholderText("ex: Casă de bani Birou Securitate, Raft 2")
-        row3.addWidget(QLabel("Capacitate:"), 0)
-        row3.addWidget(self.sp_cap, 1)
-        row3.addWidget(QLabel("Locație Fizică:"), 0)
-        row3.addWidget(self.txt_loc, 1)
-        form.addRow(row3)
-
-        self.btn_add = QPushButton("📥 Înregistrează Suport în Inventar")
-        self.btn_add.setObjectName("btn_primary")
-        self.btn_add.clicked.connect(self._add_medium)
-        form.addRow("", self.btn_add)
-
-        box_add.setLayout(form)
-        layout.addWidget(box_add)
+        layout.addWidget(grp_add)
 
         self.table = QTableWidget()
         self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "Cod Inventar", "Tip Suport", "Serie Hardware (S/N)", "Capacitate",
-            "Nivel Clasificare Max", "Locație Depozitare", "Status Ciclu Viață"
-        ])
+        self.table.setHorizontalHeaderLabels(
+            ["Cod Inventar", "Tip", "Producător/Model", "Serie H/W", "Clasificare Max.", "Status", "Locație"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setAlternatingRowColors(True)
         layout.addWidget(self.table)
 
-        btn_box = QHBoxLayout()
-        
-        self.btn_sanitize = QPushButton("🔥 Sanitarizare / Ștergere Sigură (Purge/Clear)")
-        self.btn_sanitize.clicked.connect(self._sanitize_action)
-        btn_box.addWidget(self.btn_sanitize)
+        action_row = QHBoxLayout()
+        btn_sanitize = QPushButton("🗑️ Sanitizare / Casare (NIST SP 800-88)")
+        btn_sanitize.setObjectName("danger")
+        btn_sanitize.clicked.connect(self._sanitize_selected)
+        action_row.addWidget(btn_sanitize)
+        layout.addLayout(action_row)
 
-        self.btn_destroy = QPushButton("💥 Casare & Distrugere Fizică (NIST Destroy)")
-        self.btn_destroy.setObjectName("btn_danger")
-        self.btn_destroy.clicked.connect(self._destroy_action)
-        btn_box.addWidget(self.btn_destroy)
-
-        btn_box.addStretch()
-        btn_refresh = QPushButton("🔄 Reîmprospătează")
-        btn_refresh.clicked.connect(self.load_data)
-        btn_box.addWidget(btn_refresh)
-
-        layout.addLayout(btn_box)
-
-    def load_data(self):
-        media = self.db.get_all_media()
-        self.table.setRowCount(len(media))
-
-        for row, m in enumerate(media):
-            self.table.setItem(row, 0, QTableWidgetItem(m['cod_inventar']))
-            self.table.setItem(row, 1, QTableWidgetItem(m['tip_mediu']))
-            self.table.setItem(row, 2, QTableWidgetItem(m['serie_hardware']))
-            self.table.setItem(row, 3, QTableWidgetItem(f"{m['capacitate_gb']} GB"))
-            self.table.setItem(row, 4, QTableWidgetItem(m['clasificare_max']))
-            self.table.setItem(row, 5, QTableWidgetItem(m['locatie_fizica'] or 'N/A'))
-            
-            st_item = QTableWidgetItem(m['status'].upper())
-            if m['status'] == 'activ':
-                st_item.setForeground(Qt.GlobalColor.green)
-            elif m['status'] in ('distrus', 'sanitarizat'):
-                st_item.setForeground(Qt.GlobalColor.red)
-            else:
-                st_item.setForeground(Qt.GlobalColor.yellow)
-            self.table.setItem(row, 6, st_item)
-
-            self.table.item(row, 0).setData(Qt.ItemDataRole.UserRole, m['id'])
-
-    def _add_medium(self):
-        cod = self.txt_cod.text().strip()
-        sn = self.txt_sn.text().strip()
-        if not cod or not sn:
-            QMessageBox.warning(self, "Validare", "Codul de inventar și seria hardware sunt obligatorii!")
+    def _add_media(self):
+        if not self.inp_cod.text().strip() or not self.inp_serie.text().strip():
+            QMessageBox.warning(self, "Validare", "Codul de inventar și seria hardware sunt obligatorii.")
             return
-
         data = {
-            'cod_inventar': cod,
-            'tip_mediu': self.cb_tip.currentText(),
-            'serie_hardware': sn,
-            'capacitate_gb': self.sp_cap.value(),
-            'clasificare_max': self.cb_clf.currentText(),
-            'locatie_fizica': self.txt_loc.text().strip() or None,
+            'cod_inventar': self.inp_cod.text().strip(),
+            'tip_mediu': self.inp_tip.currentText(),
+            'producator': self.inp_producator.text().strip(),
+            'model': self.inp_model.text().strip(),
+            'serie_hardware': self.inp_serie.text().strip(),
+            'capacitate_gb': self.inp_capacitate.value(),
+            'clasificare_max': self.inp_clasificare_max.currentText(),
+            'status': 'activ',
+            'locatie_fizica': self.inp_locatie.text().strip(),
             'gestionar': self.operator['nume'],
-            'status': 'activ'
         }
-
         try:
-            self.db.add_storage_medium(data, self.operator['nume'])
-            QMessageBox.information(self, "Succes", f"Suportul {cod} a fost înregistrat în inventar.")
-            self.txt_cod.clear()
-            self.txt_sn.clear()
-            self.load_data()
+            self.db.add_storage_media(data)
+            QMessageBox.information(self, "Succes", "Mediu adăugat în inventar.")
+            for f in [self.inp_cod, self.inp_producator, self.inp_model, self.inp_serie, self.inp_locatie]:
+                f.clear()
+            self.inp_capacitate.setValue(0)
+            self.refresh()
         except Exception as e:
-            QMessageBox.critical(self, "Eroare", f"Eroare: {str(e)}")
+            QMessageBox.critical(self, "Eroare", f"Cod inventar sau serie deja existente: {e}")
 
-    def _sanitize_action(self):
-        sel = self.table.currentRow()
-        if sel < 0:
-            QMessageBox.warning(self, "Atenție", "Selectați un suport din tabel.")
+    def refresh(self):
+        self.current_media = self.db.get_all_media()
+        self.table.setRowCount(len(self.current_media))
+        for i, m in enumerate(self.current_media):
+            values = [
+                m.get('cod_inventar', ''), m.get('tip_mediu', ''),
+                f"{m.get('producator','')} {m.get('model','')}".strip(),
+                m.get('serie_hardware', ''), m.get('clasificare_max', ''),
+                m.get('status', ''), m.get('locatie_fizica', '')
+            ]
+            for j, val in enumerate(values):
+                self.table.setItem(i, j, QTableWidgetItem(str(val)))
+
+    def _sanitize_selected(self):
+        row = self.table.currentRow()
+        if row < 0 or row >= len(self.current_media):
+            QMessageBox.warning(self, "Selecție", "Selectați un mediu din tabel.")
             return
-        med_id = self.table.item(sel, 0).data(Qt.ItemDataRole.UserRole)
-        cod = self.table.item(sel, 0).text()
-
-        martor, ok = QInputDialog.getText(self, "Sanitarizare Mediu", f"Nume Ofițer / Martor Verificator pentru {cod}:")
-        if not ok or not martor.strip():
-            return
-
-        try:
-            cert_nr = self.db.sanitize_medium(
-                med_id, "Purge (DoD 5220.22-M / NIST 800-88)",
-                "Suprascriere cu 3 treceri + verificare criptografică",
-                self.operator['nume'], martor.strip(), "Comisia de Declasificare și Sanitarizare"
-            )
-            QMessageBox.information(self, "Sanitarizare Executată", f"Mediul {cod} a fost sanitarizat.\\n\\nCertificat Emis: {cert_nr}")
-            self.load_data()
-        except Exception as e:
-            QMessageBox.critical(self, "Eroare", str(e))
-
-    def _destroy_action(self):
-        sel = self.table.currentRow()
-        if sel < 0:
-            QMessageBox.warning(self, "Atenție", "Selectați un suport din tabel.")
-            return
-        med_id = self.table.item(sel, 0).data(Qt.ItemDataRole.UserRole)
-        cod = self.table.item(sel, 0).text()
-
-        reply = QMessageBox.question(
-            self, "Confirmare Casare & Distrugere",
-            f"Sunteți sigur că doriți să înregistrați DISTRUGEREA FIZICĂ (Dezmembrare / Demagnetizare) pentru {cod}?\\n\\nAceastă acțiune este ireversibilă!",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        media = self.current_media[row]
+        if media['status'] in ('sanitarizat', 'distrus'):
+            QMessageBox.information(self, "Info", "Acest mediu a fost deja sanitizat/distrus.")
             return
 
-        martor, ok = QInputDialog.getText(self, "Distrugere Fizică", f"Nume Martor Securitate pentru casarea {cod}:")
-        if not ok or not martor.strip():
+        metoda, ok = QInputDialog.getItem(self, "Metodă Sanitizare",
+                                           "Selectați metoda conform NIST SP 800-88 Rev.2:",
+                                           METODE_SANITIZARE, 0, False)
+        if not ok:
+            return
+        martor, ok2 = QInputDialog.getText(self, "Martor Verificator", "Nume martor verificator (obligatoriu):")
+        if not ok2 or not martor.strip():
+            QMessageBox.warning(self, "Validare", "Martorul verificator este obligatoriu.")
             return
 
-        try:
-            cert_nr = self.db.sanitize_medium(
-                med_id, "Destroy (Distrugere Fizică / Shredding)",
-                "Distrugere mecanică particule < 2mm conform DIN 66399 Level H-5",
-                self.operator['nume'], martor.strip(), "Comisia de Casare și Distrugere Medii"
-            )
-            QMessageBox.information(self, "Distrugere Confirmată", f"Suportul {cod} a fost casat și distrus fizic.\\n\\nProces-Verbal Emis: {cert_nr}")
-            self.load_data()
-        except Exception as e:
-            QMessageBox.critical(self, "Eroare", str(e))
+        procedura = f"Sanitizare {metoda} executată pe mediu S/N {media['serie_hardware']} conform NIST SP 800-88 Rev.2 / IEEE 2883-2022."
+        cert = self.db.sanitize_media(media['id'], metoda, procedura, self.operator['nume'], martor.strip())
+        QMessageBox.information(self, "Certificat Emis", f"Sanitizare finalizată.\nCertificat nr.: {cert}")
+        self.refresh()

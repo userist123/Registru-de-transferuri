@@ -1,90 +1,58 @@
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView
-)
-from PyQt6.QtCore import Qt
-from database.db import DatabaseManager
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
+                              QPushButton, QMessageBox, QHeaderView, QLabel)
+from PyQt6.QtGui import QColor
+
 
 class TabAudit(QWidget):
-    def __init__(self, db: DatabaseManager, operator: dict):
+    def __init__(self, db_manager, operator):
         super().__init__()
-        self.db = db
+        self.db = db_manager
         self.operator = operator
-        self.setup_ui()
-        self.load_data()
+        self._build_ui()
+        self.refresh()
 
-    def setup_ui(self):
+    def _build_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
 
-        header = QLabel("🛡️ Jurnal de Audit Criptografic (Tamper-Evident Hash Chain)")
-        header.setStyleSheet("font-size: 14pt; font-weight: bold; color: #58a6ff;")
-        layout.addWidget(header)
+        top_row = QHBoxLayout()
+        btn_verify = QPushButton("🔗 Verifică Integritatea Lanțului Criptografic")
+        btn_verify.setObjectName("primary")
+        btn_verify.clicked.connect(self._verify_chain)
+        btn_refresh = QPushButton("🔄 Reîmprospătează")
+        btn_refresh.clicked.connect(self.refresh)
+        top_row.addWidget(btn_verify)
+        top_row.addWidget(btn_refresh)
+        layout.addLayout(top_row)
 
-        status_bar = QHBoxLayout()
-        self.lbl_status = QLabel("Stare Lanț Criptografic: Neverificat")
-        self.lbl_status.setStyleSheet("font-weight: bold; font-size: 12px; color: #f0f6fc; padding: 6px; background: #21262d; border-radius: 4px;")
-        status_bar.addWidget(self.lbl_status, 1)
-
-        self.btn_verify = QPushButton("🔐 Verifică Integritatea Lanțului de Audit")
-        self.btn_verify.setObjectName("btn_primary")
-        self.btn_verify.clicked.connect(self.verify_chain)
-        status_bar.addWidget(self.btn_verify)
-
-        layout.addLayout(status_bar)
+        self.label_status = QLabel("")
+        layout.addWidget(self.label_status)
 
         self.table = QTableWidget()
         self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels([
-            "Seq #", "Data / Ora", "Acțiune", "Operator", "Detalii Eveniment", "Amprentă Criptografică (SHA-256)"
-        ])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
-        self.table.setAlternatingRowColors(True)
+        self.table.setHorizontalHeaderLabels(["Secv.", "Timestamp", "Acțiune", "Operator", "Detalii", "Hash Intrare"])
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
 
-    def load_data(self):
-        rows = self.db.conn.execute("SELECT * FROM audit_log ORDER BY sequence_nr DESC LIMIT 200").fetchall()
+    def refresh(self):
+        rows = self.db.conn.execute(
+            "SELECT * FROM audit_log ORDER BY sequence_nr DESC LIMIT 500"
+        ).fetchall()
         self.table.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            values = [r['sequence_nr'], r['timestamp'][:19], r['actiune'], r['operator'],
+                      r['detalii'] or '', r['entry_hash'][:16] + "..."]
+            for j, val in enumerate(values):
+                self.table.setItem(i, j, QTableWidgetItem(str(val)))
 
-        for row_idx, r in enumerate(rows):
-            self.table.setItem(row_idx, 0, QTableWidgetItem(str(r['sequence_nr'])))
-            self.table.setItem(row_idx, 1, QTableWidgetItem(r['timestamp'][:19].replace('T', ' ')))
-            
-            act_item = QTableWidgetItem(r['actiune'])
-            if 'FAIL' in r['actiune'] or 'CANCEL' in r['actiune']:
-                act_item.setForeground(Qt.GlobalColor.red)
-            elif 'SIGN' in r['actiune'] or 'CREATE' in r['actiune']:
-                act_item.setForeground(Qt.GlobalColor.green)
-            self.table.setItem(row_idx, 2, act_item)
-
-            self.table.setItem(row_idx, 3, QTableWidgetItem(r['operator']))
-            self.table.setItem(row_idx, 4, QTableWidgetItem(r['detalii'] or ''))
-            
-            hash_item = QTableWidgetItem(r['entry_hash'][:16] + "...")
-            hash_item.setToolTip(r['entry_hash'])
-            self.table.setItem(row_idx, 5, hash_item)
-
-    def verify_chain(self):
-        valid, count, err = self.db.verify_audit_chain()
+    def _verify_chain(self):
+        valid, count, error = self.db.verify_audit_chain()
         if valid:
-            self.lbl_status.setText(f"✅ Integritate Verificată: Toate cele {count} evenimente sunt autentice și nealterate.")
-            self.lbl_status.setStyleSheet("font-weight: bold; font-size: 12px; color: #10b981; padding: 6px; background: #064e3b; border-radius: 4px;")
-            QMessageBox.information(
-                self, "Verificare Criptografică Reușită",
-                f"Lanțul criptografic de audit este 100% INTACT.\\n\\n"
-                f"Total evenimente verificate: {count}\\n"
-                f"Nicio intrare nu a fost ștearsă, modificată sau reordonată."
-            )
+            self.label_status.setText(f"✅ Lanț de audit VALID — {count} evenimente verificate, fără alterări.")
+            self.label_status.setStyleSheet("color: #437a22; font-weight: 600;")
+            QMessageBox.information(self, "Integritate Confirmată",
+                                     f"Lanțul criptografic de audit este integru.\n{count} evenimente verificate.")
         else:
-            self.lbl_status.setText(f"❌ ATENȚIE: Corupere detectată! {err}")
-            self.lbl_status.setStyleSheet("font-weight: bold; font-size: 12px; color: #f87171; padding: 6px; background: #7f1d1d; border-radius: 4px;")
-            QMessageBox.critical(
-                self, "ALERTĂ DE SECURITATE",
-                f"S-a detectat o anomalie în lanțul de audit!\\n\\n{err}\\n\\nPosibilă încercare de manipulare a bazei de date."
-            )
+            self.label_status.setText(f"⚠️ ALERTĂ: {error}")
+            self.label_status.setStyleSheet("color: #a13544; font-weight: 700;")
+            QMessageBox.critical(self, "COMPROMITERE DETECTATĂ", f"Lanțul de audit a fost alterat!\n\n{error}")
