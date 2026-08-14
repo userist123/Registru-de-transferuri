@@ -1,0 +1,14 @@
+<Application x:Class="RegistruTransferuri.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <Color x:Key="BgColor">#FF171614</Color>
+        <Color x:Key="SurfaceColor">#FF1C1B19</Color>
+        <Color x:Key="TextColor">#FFCDCCCA</Color>
+        <Color x:Key="AccentColor">#FF4F98A3</Color>
+        <SolidColorBrush x:Key="BgBrush" Color="{StaticResource BgColor}"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+        <SolidColorBrush x:Key="TextBrush" Color="{StaticResource TextColor}"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    </Application.Resources>
+</Application>
