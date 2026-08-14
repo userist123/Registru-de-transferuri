@@ -1,0 +1,114 @@
+========================================
+REGISTRU TRANSFERURI MEDIA v2.0
+Ghid Instalare și Utilizare
+========================================
+
+CERINȚE SISTEM:
+- Windows 10/11 sau Linux
+- Python 3.11 sau mai nou
+- 100 MB spațiu liber
+
+INSTALARE RAPIDĂ:
+==================
+
+1. Deschide terminal/cmd în acest director
+
+2. Instalează PyQt6:
+   Windows:  pip install PyQt6
+   Linux:    pip3 install PyQt6
+
+3. Pornește aplicația:
+   Windows:  python main.py
+   Linux:    python3 main.py
+
+VERIFICARE INSTALARE:
+=====================
+
+La prima pornire, aplicația va:
+✓ Crea baza de date transferuri.db
+✓ Inițializa schema SQL
+✓ Adăuga operator admin implicit
+
+Dacă vezi fereastra principală → instalare reușită!
+
+STRUCTURĂ FIȘIERE:
+==================
+
+registru-transferuri/
+├── main.py                 ← Start aici!
+├── config.ini              ← Setări generale
+├── transferuri.db          ← Bază de date (creat automat)
+├── database/
+│   ├── schema.sql
+│   └── db.py
+├── ui/
+│   ├── main_window.py
+│   └── widgets/
+│       ├── tab_inregistrare.py
+│       └── stats_widget.py
+└── README.md
+
+UTILIZARE:
+==========
+
+Tab "Înregistrare Nouă":
+- Completează formularul cu datele transferului
+- Câmpurile obligatorii: instituție sursă, PC, mediu transfer,
+  persoană, destinație, clasificare
+- Apasă "Salvare" → Nr. registru automat generat
+
+Tab "Statistici":
+- Vizualizare total transferuri
+- Grupare pe clasificare
+- Actualizare automată
+
+CONFORMITATE:
+=============
+
+Aplicația respectă:
+✓ HG 585/2002 - Registre evidență suporți
+✓ Legea 182/2002 - Informații clasificate
+✓ HG 781/2002 - Secrete de serviciu  
+✓ Legea 135/2007 - Arhivare electronică
+
+CARACTERISTICI SECURITATE:
+==========================
+
+✓ Bază de date locală SQLite (fără internet)
+✓ Numerotare automată REG-YYYY-NNNN
+✓ Hash SHA-256 pentru integritate
+✓ Audit log complet (toate modificările)
+✓ Autocomplete pentru date repetitive
+✓ Dark mode pentru reducere oboseală vizuală
+
+PROBLEME FRECVENTE:
+===================
+
+Q: "ModuleNotFoundError: No module named 'PyQt6'"
+A: Rulează: pip install PyQt6
+
+Q: "Permission denied" la pornire
+A: Rulează ca administrator sau verifică permisiuni
+
+Q: Baza de date nu se creează
+A: Verifică că ai drepturi de scriere în director
+
+Q: Fereastra nu apare
+A: Verifică că Python 3.11+ este instalat: python --version
+
+BACKUP:
+=======
+
+Pentru backup:
+1. Copiază fișierul transferuri.db
+2. Salvează pe mediu extern
+3. La restaurare, înlocuiește fișierul
+
+SUPORT:
+=======
+
+Aplicație dezvoltată conform specificațiilor tehnice
+și juridice pentru Ministerul Apărării Naționale.
+
+Versiune: 2.0.0
+Data: Mai 2026

@@ -1,0 +1,43 @@
+========================================
+JURNAL MODIFICĂRI
+Registru Transferuri Media
+========================================
+
+v2.0.0 - Mai 2026
+=================
+
+CARACTERISTICI NOI:
+✓ Arhitectură complet reînoită în PyQt6
+✓ Bază de date SQLite cu WAL mode
+✓ Numerotare automată cu contor per an
+✓ Hash SHA-256 pentru integritate înregistrări
+✓ Autocomplete inteligent pentru câmpuri
+✓ Audit log complet
+✓ Dark mode profesional
+✓ Statistici în timp real
+
+CONFORMITATE LEGALĂ:
+✓ HG 585/2002 - Art. 60-65, 73
+✓ Legea 182/2002 - Protecție informații
+✓ HG 781/2002 - Secrete de serviciu
+✓ Legea 135/2007 - Arhivare electronică
+
+ÎMBUNĂTĂȚIRI TEHNICE:
+✓ Performanță optimizată cu indexuri SQL
+✓ Validare câmpuri obligatorii
+✓ Prevenire SQL injection
+✓ Logging pentru debugging
+✓ Gestionare erori robustă
+
+SECURITATE:
+✓ Funcționare offline (air-gapped)
+✓ Fără conexiuni externe
+✓ Criptare hash SHA-256
+✓ Protecție integritate date
+
+URMĂTOAREA VERSIUNE (Planificat):
+- Export PDF conform HG 1349/2002
+- Export CSV pentru rapoarte
+- Grafice avansate statistici
+- Filtrare multi-criteriu
+- Căutare full-text
