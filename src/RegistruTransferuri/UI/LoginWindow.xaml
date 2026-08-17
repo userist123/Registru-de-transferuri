@@ -1,20 +1,44 @@
 <Window x:Class="RegistruTransferuri.UI.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Registru Transferuri v3.1 — Autentificare" Width="420" Height="320"
-        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
-        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}">
-    <StackPanel Margin="32">
-        <TextBlock Text="REGISTRU TRANSFERURI MEDIA" FontSize="18" FontWeight="Bold"
-                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
-        <TextBlock Text="v3.1 — HG 585/2002 · eIDAS 2.0 · NIST SP 800-88r2"
-                   FontSize="11" HorizontalAlignment="Center" Margin="0,0,0,24" Opacity="0.7"/>
-        <Label Content="Utilizator" Target="{Binding ElementName=UsernameBox}"/>
-        <TextBox x:Name="UsernameBox" Height="32" Margin="0,4,0,12"/>
-        <Label Content="PIN (6 cifre)" Target="{Binding ElementName=PinBox}"/>
-        <PasswordBox x:Name="PinBox" Height="32" MaxLength="6" Margin="0,4,0,8"/>
-        <TextBlock x:Name="ErrorText" Foreground="#FFDD6974" FontSize="12" Margin="0,4"/>
-        <Button Content="Autentificare" Click="OnLoginClick" Height="36" Margin="0,12,0,0"
-                Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="SemiBold"/>
-    </StackPanel>
+        Title="AUTENTIFICARE — REGISTRU MILITAR DE TRANSFERURI"
+        Height="480" Width="440"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource Brush.Bg.Deep}"
+        Foreground="{StaticResource Brush.Text.Primary}">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Logo & Header -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,24">
+            <Border Background="{StaticResource Brush.Bg.Elevated}" BorderBrush="{StaticResource Brush.Accent.Violet}" BorderThickness="1" CornerRadius="12" Width="64" Height="64" HorizontalAlignment="Center" Margin="0,0,0,12">
+                <TextBlock Text="🛡️" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Text="ROMÂNIA • MApN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.CyberBlue}" HorizontalAlignment="Center" />
+            <TextBlock Text="Registru Transferuri Date" FontSize="18" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+            <TextBlock Text="Sistem Informatic Securizat Air-Gapped" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+        </StackPanel>
+
+        <!-- Form Card -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="8" Padding="20">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Selectați Operator Militar: *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                <ComboBox x:Name="OperatorCombo" Height="36" Margin="0,0,0,16" />
+
+                <TextBlock Text="PIN Numeric de Autentificare (6 cifre): *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                <PasswordBox x:Name="PinBox" Style="{StaticResource TacticalPasswordBoxStyle}" Height="38" HorizontalContentAlignment="Center" MaxLength="6" KeyDown="OnPinKeyDown" />
+            </StackPanel>
+        </Border>
+
+        <!-- Action Button -->
+        <StackPanel Grid.Row="2" Margin="0,20,0,0">
+            <Button Content="🔓 Autentificare în Sistem" Height="40" FontSize="13" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnLoginClick" />
+            <TextBlock x:Name="LblError" Text="" FontSize="11" Foreground="{StaticResource Brush.Accent.Crimson}" HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
 </Window>

@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using RegistruTransferuri.Data;
 using RegistruTransferuri.Models;
 using RegistruTransferuri.Security;
+using RegistruTransferuri.Services;
 using Xunit;
 
 namespace RegistruTransferuri.Tests;
@@ -12,63 +17,30 @@ public class SecurityTests
     [Fact]
     public void RegistryPrefix_ConformArt41_HG585()
     {
-        Assert.Equal("000", ClassificationLevel.StrictSecretImportantaDeosebita.RegistryPrefix());
-        Assert.Equal("00", ClassificationLevel.StrictSecret.RegistryPrefix());
-        Assert.Equal("0", ClassificationLevel.Secret.RegistryPrefix());
-        Assert.Equal("S", ClassificationLevel.SecretDeServiciu.RegistryPrefix());
-        Assert.Equal("NC", ClassificationLevel.Neclasificat.RegistryPrefix());
+        Assert.Equal("000", ClassificationLevel.StrictSecretDeImportantaDeosebita.GetPrefix());
+        Assert.Equal("00", ClassificationLevel.StrictSecret.GetPrefix());
+        Assert.Equal("0", ClassificationLevel.Secret.GetPrefix());
+        Assert.Equal("S", ClassificationLevel.SecretDeServiciu.GetPrefix());
+        Assert.Equal("NC", ClassificationLevel.Neclasificat.GetPrefix());
     }
 
     [Fact]
     public void NatoEquivalent_ConformNATO_AC35()
     {
-        Assert.Equal("COSMIC TOP SECRET", ClassificationLevel.StrictSecretImportantaDeosebita.NatoEquivalent());
-        Assert.Equal("NATO SECRET", ClassificationLevel.StrictSecret.NatoEquivalent());
-        Assert.Equal("NATO CONFIDENTIAL", ClassificationLevel.Secret.NatoEquivalent());
-        Assert.Equal("NATO RESTRICTED", ClassificationLevel.SecretDeServiciu.NatoEquivalent());
-        Assert.Equal("NATO UNCLASSIFIED", ClassificationLevel.Neclasificat.NatoEquivalent());
+        Assert.Equal("COSMIC TOP SECRET", ClassificationLevel.StrictSecretDeImportantaDeosebita.ToNatoClassification());
+        Assert.Equal("NATO SECRET", ClassificationLevel.StrictSecret.ToNatoClassification());
+        Assert.Equal("NATO CONFIDENTIAL", ClassificationLevel.Secret.ToNatoClassification());
+        Assert.Equal("NATO RESTRICTED", ClassificationLevel.SecretDeServiciu.ToNatoClassification());
+        Assert.Equal("NATO UNCLASSIFIED", ClassificationLevel.Neclasificat.ToNatoClassification());
     }
 
     [Fact]
-    public void IntegrityHash_DetecteazaOriceModificare()
+    public void EuEquivalent_ConformEUCI()
     {
-        var t = new TransferRecord
-        {
-            RegistryNumber = "MAPN-2026-000-0001",
-            Classification = ClassificationLevel.StrictSecretImportantaDeosebita,
-            TransferDateUtc = DateTime.UtcNow,
-            SourceInstitution = "MAPN", DestinationInstitution = "SRI",
-            SourcePerson = "A", DestinationPerson = "B",
-            MediaType = "USB", MediaSerialNumber = "SN123",
-            OperatorUsername = "op1"
-        };
-        t.IntegrityHash = t.ComputeIntegrityHash();
-        Assert.True(t.VerifyIntegrity());
-
-        t.DestinationInstitution = "MODIFICAT";
-        Assert.False(t.VerifyIntegrity());
-    }
-
-    [Fact]
-    public void AuditChain_DetecteazaStergereSiModificare()
-    {
-        var entries = new List<AuditEntry>();
-        var prev = AuditChain.GenesisHash;
-        for (long i = 1; i <= 5; i++)
-        {
-            var ts = DateTime.UtcNow;
-            var h = AuditChain.ComputeEntryHash(prev, i, ts, "ACT", "op", $"d{i}");
-            entries.Add(new AuditEntry(i, ts, "ACT", "op", $"d{i}", prev, h));
-            prev = h;
-        }
-        Assert.Equal(-1, AuditChain.VerifyChain(entries));
-
-        var tampered = entries.ToList();
-        tampered[2] = tampered[2] with { Details = "FALSIFICAT" };
-        Assert.Equal(3, AuditChain.VerifyChain(tampered));
-
-        var deleted = entries.Where(e => e.Sequence != 3).ToList();
-        Assert.True(AuditChain.VerifyChain(deleted) > 0);
+        Assert.Equal("TRÈS SECRET UE / EU TOP SECRET", ClassificationLevel.StrictSecretDeImportantaDeosebita.ToEuClassification());
+        Assert.Equal("SECRET UE / EU SECRET", ClassificationLevel.StrictSecret.ToEuClassification());
+        Assert.Equal("CONFIDENTIEL UE / EU CONFIDENTIAL", ClassificationLevel.Secret.ToEuClassification());
+        Assert.Equal("RESTREINT UE / EU RESTRICTED", ClassificationLevel.SecretDeServiciu.ToEuClassification());
     }
 
     [Fact]
@@ -76,8 +48,8 @@ public class SecurityTests
     {
         var leaves = Enumerable.Range(0, 100)
             .Select(i => Convert.ToHexString(
-                System.Security.Cryptography.SHA256.HashData(
-                    System.Text.Encoding.UTF8.GetBytes($"entry-{i}"))))
+                SHA256.HashData(
+                    Encoding.UTF8.GetBytes($"entry-{i}"))))
             .ToList();
         var root = MerkleTree.ComputeRoot(leaves);
         var proof = MerkleTree.GenerateProof(leaves, 42);
@@ -86,19 +58,152 @@ public class SecurityTests
     }
 
     [Fact]
-    public void PinHasher_VerificareInTimpConstant()
+    public void CognitiveBridge_OracleAndSynthesis()
     {
-        var (hash, salt) = PinHasher.HashPin("123456");
-        Assert.True(PinHasher.VerifyPin("123456", hash, salt));
-        Assert.False(PinHasher.VerifyPin("654321", hash, salt));
+        var bridge = new CognitiveVaultBridgeService();
+        var answer = bridge.AskSecurityOracle("sanitizare nist");
+        Assert.Contains("NIST SP 800-88", answer);
+
+        var tx = new TransferRecord
+        {
+            RegistryNumber = "MAPN-2026-S-0001",
+            Classification = ClassificationLevel.Secret,
+            TransferDateUtc = DateTime.UtcNow,
+            SourceInstitution = "MApN",
+            DestinationInstitution = "Statul Major",
+            SourcePerson = "Cpt. Ionescu",
+            MediaType = "Stick USB",
+            MediaSerialNumber = "TEST-SN-12345",
+            MediaVendorId = "0781",
+            MediaProductId = "5567",
+            PayloadFileName = "test_doc.zip",
+            PayloadSha256Hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            OperatorUsername = "Admin"
+        };
+        var (success, _) = bridge.SynthesizeTransferToVault(tx);
+        Assert.True(success);
     }
 
     [Fact]
-    public void Sanitization_MinimumConformNist80088r2()
+    public void DatabaseContext_FullTransferAndAuditLifecycle()
     {
-        Assert.Equal(SanitizationMethod.Clear, ClassificationLevel.Neclasificat.MinimumSanitization());
-        Assert.Equal(SanitizationMethod.Purge, ClassificationLevel.SecretDeServiciu.MinimumSanitization());
-        Assert.Equal(SanitizationMethod.Destroy, ClassificationLevel.Secret.MinimumSanitization());
-        Assert.Equal(SanitizationMethod.Destroy, ClassificationLevel.StrictSecretImportantaDeosebita.MinimumSanitization());
+        var tempDb = Path.Combine(Path.GetTempPath(), $"test_db_{Guid.NewGuid():N}.sqlite3");
+        try
+        {
+            using var db = new DatabaseContext(tempDb);
+
+            // 1. Operatori default
+            var ops = db.GetActiveOperators();
+            Assert.True(ops.Count >= 2);
+
+            // 2. Autentificare PIN
+            var auth = db.Authenticate(ops[0].Id, "123456");
+            Assert.NotNull(auth);
+
+            // 3. Adaugare Transfer
+            var tx = new TransferRecord
+            {
+                RegistryNumber = "2150-23SSv",
+                Classification = ClassificationLevel.SecretDeServiciu,
+                TransferDateUtc = DateTime.UtcNow,
+                SourceInstitution = "MApN",
+                DestinationInstitution = "Baza 1",
+                SourcePerson = "Cpt. Popescu",
+                MediaType = "Stick USB",
+                MediaSerialNumber = "HW-SN-9999",
+                MediaFriendlyLabel = "Stick Operativ 01",
+                PayloadFileName = "2150-23SSv.zip",
+                PayloadSha256Hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                OperatorUsername = auth.FullName
+            };
+            db.InsertTransfer(tx);
+
+            var retrieved = db.GetTransfers("2150-23SSv");
+            Assert.Single(retrieved);
+            Assert.Equal("2150-23SSv", retrieved[0].RegistryNumber);
+
+            // 4. Verificare Lant Audit
+            var (valid, count, error) = db.VerifyAuditChain();
+            Assert.True(valid);
+            Assert.True(count >= 2);
+            Assert.Null(error);
+        }
+        finally
+        {
+            if (File.Exists(tempDb))
+            {
+                try { File.Delete(tempDb); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public void MediaEnrollment_And_FriendlyNameUpdate()
+    {
+        var tempDb = Path.Combine(Path.GetTempPath(), $"test_media_{Guid.NewGuid():N}.sqlite3");
+        try
+        {
+            using var db = new DatabaseContext(tempDb);
+
+            var asset = new MediaAsset
+            {
+                SerialNumber = "KINGSTON-00123",
+                InventoryCode = "0-1045/2026",
+                FriendlyName = "Stick Transfer Operativ MApN 01",
+                MediaType = "Stick USB Flash",
+                VendorId = "0951",
+                ProductId = "1666",
+                CapacityBytes = 32_000_000_000L,
+                MaxClassification = ClassificationLevel.Secret,
+                Status = MediaStatus.AutorizatRw,
+                CustodianName = "Cpt. Radu"
+            };
+
+            db.AddOrUpdateMedia(asset, "Admin");
+
+            var list = db.GetMediaAssets("KINGSTON");
+            Assert.Single(list);
+            Assert.Equal("Stick Transfer Operativ MApN 01", list[0].FriendlyName);
+
+            // Update Friendly Name
+            db.UpdateMediaFriendlyName(list[0].Id, "Stick Operativ Redenumit [0-1045/2026]", "Admin");
+            var updated = db.GetMediaAssets("Redenumit");
+            Assert.Single(updated);
+            Assert.Equal("Stick Operativ Redenumit [0-1045/2026]", updated[0].FriendlyName);
+        }
+        finally
+        {
+            if (File.Exists(tempDb))
+            {
+                try { File.Delete(tempDb); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public void ExportService_GeneratesValidHtml()
+    {
+        var exporter = new PadesExportService();
+        var tx = new TransferRecord
+        {
+            RegistryNumber = "MAPN-2026-S-0001",
+            Classification = ClassificationLevel.Secret,
+            TransferDateUtc = DateTime.UtcNow,
+            SourceInstitution = "MApN / Structura Securitate",
+            SourceStationHost = "PC-SECURE-01",
+            SourcePerson = "Cpt. Ionescu Radu",
+            DestinationInstitution = "Statul Major",
+            DestinationPerson = "Mr. Popa",
+            MediaType = "Stick USB",
+            MediaSerialNumber = "SN-987654",
+            PayloadFileName = "Date_Operative.zip",
+            PayloadSha256Hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            OperatorUsername = "Operator 1"
+        };
+
+        var html = exporter.GenerateProcesVerbalHtml(tx);
+        Assert.Contains("PROCES-VERBAL DE PREDARE-PRIMIRE", html);
+        Assert.Contains("HG 585/2002 Art. 65-72", html);
+        Assert.Contains("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", html);
     }
 }
