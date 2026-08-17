@@ -258,6 +258,45 @@ def test_manual_and_parsed_registration_number_support():
     print("PASS: test_manual_and_parsed_registration_number_support")
 
 
+def test_cognitive_bridge_service_and_oracle():
+    from services.cognitive_bridge_service import CognitiveBridgeService
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        bridge = CognitiveBridgeService(db)
+        
+        # Test Oracle security Q&A
+        ans_nist = bridge.ask_security_oracle("procedura de sanitizare nist 800-88r2")
+        assert "NIST SP 800-88" in ans_nist
+        assert "Destroy" in ans_nist
+        
+        ans_hg585 = bridge.ask_security_oracle("reguli numerotare hg 585 art 41")
+        assert "HG 585/2002" in ans_hg585
+        assert "000" in ans_hg585
+
+        ans_nato = bridge.ask_security_oracle("clasificare nato si ue")
+        assert "COSMIC TOP SECRET" in ans_nato
+
+        # Test transfer synthesis into Vault memory
+        data = {
+            'nr': 'MAPN-2026-0-0099',
+            'src_institutie': 'MApN / U.M. 01234',
+            'src_pc_nume': 'PC-01',
+            'src_medium': 'SSD NVMe',
+            'dst_institutie': 'Statul Major',
+            'pers_nume': 'Lt. Col. Marinescu',
+            'transfer_medium': 'Stick USB',
+            'arhiva_nume': 'Test_Vault_Bridge.7z',
+            'arhiva_hash': 'D7A8FBB307D7809469CA9ABCB0082E4F8D5651E46D3CD0CCE0D7AEF4DE97B9C2',
+            'clasificare': 'Secret'
+        }
+        tid = db.insert_transfer(data, "Operator Test", None)
+        success, msg = bridge.synthesize_transfer_to_vault_memory(tid, "Operator Test")
+        assert success is True
+        assert "sintetizat în Seiful de Memorie" in msg
+        db.close()
+    print("PASS: test_cognitive_bridge_service_and_oracle")
+
+
 if __name__ == "__main__":
     test_default_operators_and_nato_clearance()
     test_pin_authentication()
@@ -266,7 +305,8 @@ if __name__ == "__main__":
     test_device_classification_ceiling_enforcement()
     test_insert_transfer_with_nato_eu_and_hash()
     test_manual_and_parsed_registration_number_support()
+    test_cognitive_bridge_service_and_oracle()
     test_four_eyes_approval()
     test_audit_chain_tamper_detection()
     test_sanitize_media_nist80088r2()
-    print("\n10/10 teste trecute cu succes.")
+    print("\n11/11 teste trecute cu succes.")

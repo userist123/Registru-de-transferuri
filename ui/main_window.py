@@ -14,6 +14,7 @@ from ui.widgets.tab_medii_amprentate import TabMediiAmprentate
 from ui.widgets.stats_widget import StatsWidget
 from ui.widgets.tab_audit import TabAudit
 from ui.widgets.tab_admin import TabAdmin
+from ui.widgets.tab_cognitive_vault import TabCognitiveVault
 from ui.theme import get_classification_badge_style, CLASSIFICATION_COLORS, NATO_COLORS
 
 
@@ -99,10 +100,12 @@ class MainWindow(QMainWindow):
         self.tab_medii = TabMediiAmprentate(self.db, self.operator['nume'])
         self.stats_widget = StatsWidget(self.db)
         self.tab_audit = TabAudit(self.db, self.operator)
+        self.tab_cognitive = TabCognitiveVault(self.db, self.operator)
 
         self.tabs.addTab(self.tab_registru, "📋 Registru Transferuri (Live)")
         self.tabs.addTab(self.tab_inregistrare, "➕ Înregistrare Transfer Nou")
         self.tabs.addTab(self.tab_medii, "🛡️ Medii Amprentate (Device Control)")
+        self.tabs.addTab(self.tab_cognitive, "🧠 Seif Cognitiv & Oracol INFOSEC")
         self.tabs.addTab(self.stats_widget, "📊 Statistici & Conformitate")
         self.tabs.addTab(self.tab_audit, "📜 Jurnal Audit SHA-256")
 
@@ -152,8 +155,10 @@ class MainWindow(QMainWindow):
         elif index == 2:
             self.tab_medii.refresh_all()
         elif index == 3:
-            self.stats_widget.load_stats()
+            self.tab_cognitive.refresh_transfers()
         elif index == 4:
+            self.stats_widget.load_stats()
+        elif index == 5:
             self.tab_audit.refresh()
         self._update_status_counts()
 
