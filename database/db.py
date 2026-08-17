@@ -597,6 +597,10 @@ class DatabaseManager:
         rows = self.conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
+    def get_transfer_by_id(self, record_id: str) -> Optional[Dict]:
+        row = self.conn.execute("SELECT * FROM transferuri WHERE id=?", (record_id,)).fetchone()
+        return dict(row) if row else None
+
     def sanitize_media(self, mediu_id: str, metoda: str, procedura_detalii: str, operator_executant: str,
                         martor_verificator: str, aprobat_de: str = "") -> str:
         row = self.conn.execute("SELECT * FROM medii_amprentate WHERE id=?", (mediu_id,)).fetchone()

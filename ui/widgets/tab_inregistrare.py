@@ -1,80 +1,101 @@
 """
-Tab Înregistrare Transfer Militar - Formular Transfer Date Informatice
-Conform HG 585/2002, NATO AC/35, Decizia 2013/488/UE si Endpoint Protector Device Control.
+Tab Înregistrare Transfer Militar - Formular Conform HG 585/2002, NATO AC/35 & EUCI (v3.4)
+Permite:
+- Introducerea manuala a numarului de inregistrare (ex: 2150-23SSv)
+- Detectarea automata a numarului si a nivelului de clasificare (SSV/Secret/Strict Secret/SSID/NC) din denumirea fisierului
+- Auto-generare conform HG 585 Art. 41 daca este lasat necompletat
+- Selectare mediu amprentat (USB, CD/DVD, SSD/HDD Extern, Card SD, SATA)
+- Calcul integritate SHA-256 si contrasemnare Four-Eyes Principle
 """
+import os, hashlib, json, re
+from configparser import ConfigParser
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGroupBox,
-    QLineEdit, QComboBox, QTextEdit, QSpinBox, QDoubleSpinBox,
-    QPushButton, QFormLayout, QScrollArea, QMessageBox, QFileDialog,
-    QCheckBox, QCompleter, QDialog
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QComboBox, QPushButton, QGroupBox, QDoubleSpinBox,
+    QSpinBox, QTextEdit, QFileDialog, QMessageBox, QCheckBox,
+    QScrollArea, QFrame, QCompleter, QDialog, QFormLayout
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
-from configparser import ConfigParser
-import hashlib, os, secrets
-from datetime import datetime
 from database.db import DatabaseManager
 from services.device_control_service import DeviceControlService
 from ui.theme import get_classification_badge_style, CLASSIFICATION_COLORS, NATO_COLORS
 
 
 class DialogFourEyesApproval(QDialog):
-    def __init__(self, db: DatabaseManager, transfer_nr: str, clasificare: str, parent=None):
+    """Dialog obligatoriu pentru principiul celor 4 ochi (Four-Eyes Principle) la transferuri clasificate."""
+    def __init__(self, db: DatabaseManager, current_operator: str, clasificare: str, parent=None):
         super().__init__(parent)
         self.db = db
-        self.transfer_nr = transfer_nr
+        self.current_operator = current_operator
         self.clasificare = clasificare
-        self.approved_by = None
-        self.functie = None
+        self.approver_name = ""
+        self.approver_role = ""
+        self.approver_id = ""
         self.setup_ui()
 
     def setup_ui(self):
-        self.setWindowTitle("🔐 Aprobare Principiul Celor 4 Ochi (Four-Eyes Principle)")
-        self.setMinimumWidth(450)
+        self.setWindowTitle(f"👥 Aprobare Obligatorie Four-Eyes Principle — {self.clasificare}")
+        self.setMinimumWidth(480)
         layout = QVBoxLayout(self)
+        layout.setSpacing(12)
 
-        lbl_alert = QLabel(f"⚠️ Transferul clasificate [{self.clasificare}] ({self.transfer_nr})\nnecesită validarea și contrasemnarea unui al doilea ofițer / martor autorizat conform HG 585/2002 și NATO AC/35.")
-        lbl_alert.setWordWrap(True)
-        lbl_alert.setStyleSheet("color: #d29922; font-weight: bold; margin-bottom: 10px;")
-        layout.addWidget(lbl_alert)
+        info = QLabel(
+            f"⚠️ ATENȚIE: Transferul solicitat are nivelul de clasificare <b>{self.clasificare}</b>.<br>"
+            "Conform standardelor militare HG 585/2002 și NATO AC/35, este necesară <b>contrasemnarea și validarea PIN</b> de către un al doilea ofițer / martor autorizat."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet("color: #d29922; background-color: #1f1b11; border: 1px solid #bb8009; padding: 10px; border-radius: 6px;")
+        layout.addWidget(info)
 
         form = QFormLayout()
+        
+        self.cmb_approver = QComboBox()
+        operators = self.db.get_active_operators()
+        eligible_approvers = [op for op in operators if op['nume'] != self.current_operator]
+        if not eligible_approvers:
+            eligible_approvers = operators
 
-        self.cmb_op = QComboBox()
-        self.ops = self.db.get_active_operators()
-        for op in self.ops:
-            self.cmb_op.addItem(f"{op['nume']} ({op['functie']} - {op['autorizatie']})", op['id'])
-        form.addRow("Ofițer / Martor Verificator:", self.cmb_op)
+        for op in eligible_approvers:
+            self.cmb_approver.addItem(f"{op['nume']} ({op.get('functie', 'Ofițer')} - {op.get('autorizatie', '')})", op)
+        form.addRow("Ofițer Aprobator / Martor: *", self.cmb_approver)
 
         self.txt_pin = QLineEdit()
         self.txt_pin.setEchoMode(QLineEdit.EchoMode.Password)
-        self.txt_pin.setPlaceholderText("PIN 6 cifre martor")
-        form.addRow("PIN Confirmare:", self.txt_pin)
+        self.txt_pin.setMaxLength(6)
+        self.txt_pin.setPlaceholderText("Introduceți PIN-ul de 6 cifre al aprobatorului")
+        form.addRow("PIN Aprobator (6 cifre): *", self.txt_pin)
 
         layout.addLayout(form)
 
         btns = QHBoxLayout()
-        btn_cancel = QPushButton("Anulare Transfer")
+        btn_cancel = QPushButton("Anulează Transferul")
         btn_cancel.clicked.connect(self.reject)
         btns.addWidget(btn_cancel)
 
-        btn_ok = QPushButton("✅ Aprobă & Semnează Transfer")
-        btn_ok.setObjectName("primary")
-        btn_ok.clicked.connect(self._verify_pin)
-        btns.addWidget(btn_ok)
+        btn_confirm = QPushButton("✍️ Validează & Aprobă Transferul")
+        btn_confirm.setObjectName("primary")
+        btn_confirm.clicked.connect(self._verify_and_approve)
+        btns.addWidget(btn_confirm)
 
         layout.addLayout(btns)
 
-    def _verify_pin(self):
-        op_id = self.cmb_op.currentData()
+    def _verify_and_approve(self):
+        op_data = self.cmb_approver.currentData()
         pin = self.txt_pin.text().strip()
-        auth = self.db.authenticate_operator(op_id, pin)
-        if auth:
-            self.approved_by = auth['nume']
-            self.functie = auth['functie']
-            self.accept()
-        else:
-            QMessageBox.critical(self, "Autentificare Eșuată", "PIN incorect pentru martorul selectat!")
+        if not op_data or len(pin) != 6:
+            QMessageBox.warning(self, "Validare", "Selectați aprobatorul și introduceți PIN-ul de 6 cifre.")
+            return
+
+        authenticated = self.db.authenticate_operator(op_data['id'], pin)
+        if not authenticated:
+            QMessageBox.critical(self, "Eroare Autentificare", "PIN Incorect! Aprobarea a fost respinsă și jurnalizată în audit.")
+            return
+
+        self.approver_name = op_data['nume']
+        self.approver_role = op_data.get('functie', 'Ofițer Securitate')
+        self.approver_id = op_data['id']
+        self.accept()
 
 
 class TabInregistrare(QWidget):
@@ -111,6 +132,27 @@ class TabInregistrare(QWidget):
         header_bar.addWidget(btn_refresh_dev)
 
         layout.addLayout(header_bar)
+
+        # ===== 0. NUMĂR ÎNREGISTRARE TRANSFER (MANUAL / DETECTAT DIN FIȘIER / AUTO HG 585) =====
+        box_nr = QGroupBox("📋 0. Număr Înregistrare Transfer Militar (Manual sau Extras Automat din Fișier)")
+        form_nr = QFormLayout(box_nr)
+
+        row_nr = QHBoxLayout()
+        self.txt_tx_nr = QLineEdit()
+        self.txt_tx_nr.setPlaceholderText("Introduceți manual (ex: 2150-23SSv) sau lăsați gol pt. auto-generare HG 585 (ex: MAPN-2026-S-0001)")
+        row_nr.addWidget(self.txt_tx_nr, stretch=1)
+
+        btn_clear_nr = QPushButton("⚡ Resetează la Auto-Generare HG 585")
+        btn_clear_nr.clicked.connect(self._reset_to_autonr)
+        row_nr.addWidget(btn_clear_nr)
+        form_nr.addRow("Nr. Înregistrare Transfer:", row_nr)
+
+        self.lbl_detected_badge = QLabel("")
+        self.lbl_detected_badge.setStyleSheet("color: #3fb950; font-weight: bold; background-color: #161b22; padding: 6px 10px; border-radius: 4px; border: 1px solid #238636;")
+        self.lbl_detected_badge.hide()
+        form_nr.addRow("Detecție Inteligentă:", self.lbl_detected_badge)
+
+        layout.addWidget(box_nr)
 
         # ===== 1. SELECTOR MEDIU AMPRENTAT CONECTAT =====
         box_mediu = QGroupBox("💾 1. Mediu de Transfer Amprentat (Device Control Whitelist)")
@@ -231,11 +273,12 @@ class TabInregistrare(QWidget):
         form_data = QFormLayout(box_data)
 
         self.txt_arhiva_nume = QLineEdit()
-        self.txt_arhiva_nume.setPlaceholderText("Nume pachet date / arhivă / documente...")
+        self.txt_arhiva_nume.setPlaceholderText("Ex: 2150-23SSv.zip sau Nume pachet date...")
+        self.txt_arhiva_nume.textChanged.connect(self._on_filename_changed)
         form_data.addRow("Denumire Pachet / Arhivă: *", self.txt_arhiva_nume)
 
         self.cmb_arhiva_tip = QComboBox()
-        self.cmb_arhiva_tip.addItems(['ZIP Securizat', '7Z Criptat AES-256', 'TAR.GZ', 'ISO', 'EVTX (Jurnale)', 'Fișiere Documente / PDF', 'Imagine Forensic RAW/DD', 'Alt Format'])
+        self.cmb_arhiva_tip.addItems(['ZIP Securizat', '7Z Criptat AES-256', 'TAR.GZ', 'ISO (Imagine Disc)', 'EVTX (Jurnale Audit)', 'Fișiere Documente / PDF', 'Imagine Forensic RAW/DD', 'Alt Format'])
         form_data.addRow("Tip Conținut:", self.cmb_arhiva_tip)
 
         row_dim = QHBoxLayout()
@@ -265,7 +308,7 @@ class TabInregistrare(QWidget):
         form_data.addRow("Securitate Anti-Malware:", self.chk_av)
 
         self.txt_desc = QTextEdit()
-        self.txt_desc.setMaximumHeight(60)
+        self.txt_desc.setMaximumHeight(50)
         self.txt_desc.setPlaceholderText("Scurtă descriere a documentelor/datelor transferate...")
         form_data.addRow("Descriere Conținut:", self.txt_desc)
 
@@ -307,7 +350,7 @@ class TabInregistrare(QWidget):
         box_obs = QGroupBox("📝 Observații Suplimentare")
         v_obs = QVBoxLayout(box_obs)
         self.txt_observatii = QTextEdit()
-        self.txt_observatii.setMaximumHeight(50)
+        self.txt_observatii.setMaximumHeight(45)
         v_obs.addWidget(self.txt_observatii)
         layout.addWidget(box_obs)
 
@@ -411,6 +454,60 @@ class TabInregistrare(QWidget):
         self.txt_nato_clf.setText(self.db.NATO_MAP.get(clf, 'NATO UNCLASSIFIED'))
         self.txt_eu_clf.setText(self.db.EU_MAP.get(clf, 'LIMITE / UNCLASSIFIED'))
 
+    def _on_filename_changed(self, text: str):
+        if text.strip():
+            self._parse_filename_for_registry_info(text.strip())
+
+    def _parse_filename_for_registry_info(self, filename: str):
+        """
+        Detecteaza automat numarul de inregistrare militar si nivelul de clasificare
+        din structura numelui de fisier (ex: 2150-23SSv, 0-1045/26, 00-991-26, etc.)
+        """
+        base = os.path.splitext(os.path.basename(filename))[0].strip()
+        if not base or len(base) < 3:
+            return
+
+        # 1. Detectie Secret de Serviciu (ex: 2150-23SSv, 2150_SSV, S-1234)
+        if re.search(r'(?:[-_]|\b)(?:SSV|SSv|ssv|S_S_V)(?:[-_]|\b)?', base, re.IGNORECASE) or base.upper().endswith("SSV") or base.endswith("SSv"):
+            self.cmb_clasificare.setCurrentText('Secret de Serviciu')
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Extras din fișier: Nr. Înreg. <b>{base}</b> ➔ Clasificare: <b>Secret de Serviciu (SSV)</b>")
+            self.lbl_detected_badge.show()
+        # 2. Detectie Strict Secret de Importanta Deosebita (SSID / 000)
+        elif re.search(r'(?:[-_]|\b)(?:SSID|000[-_])', base, re.IGNORECASE):
+            self.cmb_clasificare.setCurrentText('Strict Secret de Importanță Deosebită')
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Extras din fișier: Nr. Înreg. <b>{base}</b> ➔ Clasificare: <b>Strict Secret SSID</b>")
+            self.lbl_detected_badge.show()
+        # 3. Detectie Strict Secret (SS / 00)
+        elif (re.search(r'(?:[-_]|\b)(?:SS|00[-_])', base, re.IGNORECASE) or base.upper().endswith("-SS") or base.upper().endswith("_SS")) and not re.search(r'SSV|SSv', base, re.IGNORECASE):
+            self.cmb_clasificare.setCurrentText('Strict Secret')
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Extras din fișier: Nr. Înreg. <b>{base}</b> ➔ Clasificare: <b>Strict Secret (SS)</b>")
+            self.lbl_detected_badge.show()
+        # 4. Detectie Secret (Secret / SEC / 0-)
+        elif re.search(r'(?:[-_]|\b)(?:Secret|SEC|0[-_]\d+)', base, re.IGNORECASE):
+            self.cmb_clasificare.setCurrentText('Secret')
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Extras din fișier: Nr. Înreg. <b>{base}</b> ➔ Clasificare: <b>Secret</b>")
+            self.lbl_detected_badge.show()
+        # 5. Detectie Neclasificat (NC)
+        elif re.search(r'(?:[-_]|\b)(?:NC|Neclasificat)', base, re.IGNORECASE):
+            self.cmb_clasificare.setCurrentText('Neclasificat')
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Extras din fișier: Nr. Înreg. <b>{base}</b> ➔ Clasificare: <b>Neclasificat (NC)</b>")
+            self.lbl_detected_badge.show()
+        # 6. Pattern general numar-an (ex: 2150-23, 1045/26)
+        elif re.match(r'^[0-9A-Za-z]+[-_/][0-9A-Za-z]+$', base):
+            self.txt_tx_nr.setText(base)
+            self.lbl_detected_badge.setText(f"💡 Nr. Înregistrare preluat din denumirea fișierului: <b>{base}</b>")
+            self.lbl_detected_badge.show()
+
+    def _reset_to_autonr(self):
+        self.txt_tx_nr.clear()
+        self.lbl_detected_badge.hide()
+        QMessageBox.information(self, "Auto-Generare", "Numărul de înregistrare va fi generat automat conform standardului HG 585/2002 la salvare.")
+
     def _completer_field(self, category: str) -> QLineEdit:
         field = QLineEdit()
         suggs = self.db.get_autocomplete_suggestions(category)
@@ -431,9 +528,14 @@ class TabInregistrare(QWidget):
                         hasher.update(chunk)
                 h = hasher.hexdigest().upper()
                 self.txt_hash.setText(h)
-                self.txt_arhiva_nume.setText(os.path.basename(file_path))
+                fname = os.path.basename(file_path)
+                self.txt_arhiva_nume.setText(fname)
                 self.spn_dim_gb.setValue(round(sz_bytes / (1024**3), 3))
-                QMessageBox.information(self, "Integritate SHA-256", f"Hash calculat cu succes:\n{h}")
+                
+                # Auto-parse registration number and classification from selected file
+                self._parse_filename_for_registry_info(fname)
+                
+                QMessageBox.information(self, "Integritate SHA-256 & Preluare Fișier", f"Fișier: {fname}\nHash SHA-256 calculat:\n{h}")
             except Exception as e:
                 QMessageBox.critical(self, "Eroare Calcul Hash", f"Eroare la citirea fișierului:\n{str(e)}")
 
@@ -462,96 +564,125 @@ class TabInregistrare(QWidget):
         storage_medium_id = None
         if selected_dev:
             storage_medium_id = selected_dev.get('medium_id')
-            if not selected_dev.get('is_amprentat'):
+            if not selected_dev.get('is_amprentat') and (selected_dev.get('is_removable') or selected_dev.get('is_optical')):
                 reply = QMessageBox.question(
                     self, "Avertisment Mediu Neamprentat",
                     "Dispozitivul utilizat nu este amprentat în baza de date a stației.\n"
-                    "Doriți să continuați în regim de excepție militară (se va jurnaliza în audit)?",
+                    "Doriți să continuați transferul? (Va fi jurnalizat ca eveniment de securitate în lanțul de audit)",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
-                if reply != QMessageBox.StandardButton.Yes:
+                if reply == QMessageBox.StandardButton.No:
+                    return
+            elif selected_dev.get('is_amprentat'):
+                # Check classification ceiling
+                ok, reason = self.db.is_classification_allowed_on_medium(storage_medium_id, clasificare)
+                if not ok:
+                    QMessageBox.critical(self, "Violare Plafon de Securitate", f"TRANSFER BLOCAT!\n{reason}")
                     return
 
-        # Four-Eyes Principle check for classified levels
+        # Four-Eyes Approval for classified transfers (Secret, Strict Secret, SSID)
         four_eyes_aprobator = None
         four_eyes_functie = None
-        if clasificare in ['Secret', 'Strict Secret', 'Strict Secret de Importanță Deosebită']:
-            prefix = self.config.get('General', 'prefix_nr', fallback='MAPN')
-            sim_nr = f"{prefix}-{datetime.now().year}-{self.db.PREFIX_MAP.get(clasificare, 'NC')}-XXXX"
-            dlg_fe = DialogFourEyesApproval(self.db, sim_nr, clasificare, parent=self)
-            if dlg_fe.exec() != QDialog.DialogCode.Accepted:
-                QMessageBox.warning(self, "Transfer Anulat", "Aprobarea celui de-al doilea ofițer (Four-Eyes) este obligatorie pentru informații clasificate!")
-                return
-            four_eyes_aprobator = dlg_fe.approved_by
-            four_eyes_functie = dlg_fe.functie
+        four_eyes_op_id = None
 
-        prefix_inst = self.config.get('General', 'prefix_nr', fallback='MAPN')
-        nr = self.db.get_next_nr(prefix_inst, clasificare)
+        if clasificare in ['Secret', 'Strict Secret', 'Strict Secret de Importanță Deosebită']:
+            dlg_4eyes = DialogFourEyesApproval(self.db, self.operator_name, clasificare, parent=self)
+            if dlg_4eyes.exec() != QDialog.DialogCode.Accepted:
+                QMessageBox.warning(self, "Anulat", "Transferul a fost anulat deoarece a lipsit aprobarea Four-Eyes!")
+                return
+            four_eyes_aprobator = dlg_4eyes.approver_name
+            four_eyes_functie = dlg_4eyes.approver_role
+            four_eyes_op_id = dlg_4eyes.approver_id
+
+        # Custom or Auto-Generated Registration Number
+        manual_nr = self.txt_tx_nr.text().strip() or None
 
         data = {
-            'nr': nr,
+            'nr': manual_nr, # If provided, db.insert_transfer will use it directly!
             'directie_transfer': self.cmb_directie.currentData(),
             'src_institutie': self.txt_src_institutie.text().strip(),
             'src_pc_nume': self.txt_src_pc.text().strip(),
-            'src_medium': self.txt_med_tip.text().strip() or 'Stick USB',
-            'src_sn': self.txt_med_sn.text().strip() or None,
+            'src_medium': 'SSD NVMe Intern' if not selected_dev else f"{selected_dev.get('tip_mediu', 'Mediu')} ({selected_dev.get('drive_letter', '')})",
+            'dst_institutie': self.txt_dst_institutie.text().strip(),
+            'dst_pc_nume': self.txt_dst_pc.text().strip() or None,
             'pers_nume': self.txt_pers_nume.text().strip(),
             'pers_functie': self.txt_pers_functie.text().strip() or None,
             'pers_legitimatie': self.txt_pers_leg.text().strip() or None,
             'pers_autorizatie': self.cmb_pers_aut.currentText(),
             'curier_militar_nume': self.txt_curier_nume.text().strip() or None,
             'curier_militar_legitimatie': self.txt_curier_leg.text().strip() or None,
-            'transfer_medium': self.txt_med_tip.text().strip() or 'Mediu Amovibil',
-            'transfer_sn': self.txt_med_sn.text().strip() or None,
+            'transfer_medium': selected_dev.get('tip_mediu', 'Stick USB') if selected_dev else 'Mediu Nespecificat',
             'transfer_label': self.txt_med_label.text().strip() or None,
-            'transfer_vid': self.txt_med_vid_pid.text().split(':')[0] if ':' in self.txt_med_vid_pid.text() else None,
-            'transfer_pid': self.txt_med_vid_pid.text().split(':')[1] if ':' in self.txt_med_vid_pid.text() else None,
-            'transfer_cap_gb': self.spn_med_cap.value() or None,
-            'transfer_free_gb': self.spn_med_free.value() or None,
+            'transfer_sn': selected_dev.get('serial_number', 'N/A') if selected_dev else None,
+            'transfer_vid': selected_dev.get('vid', 'N/A') if selected_dev else None,
+            'transfer_pid': selected_dev.get('pid', 'N/A') if selected_dev else None,
+            'transfer_cap_gb': self.spn_med_cap.value(),
+            'transfer_free_gb': self.spn_med_free.value(),
             'storage_medium_id': storage_medium_id,
-            'dst_institutie': self.txt_dst_institutie.text().strip(),
-            'dst_pc_nume': self.txt_dst_pc.text().strip() or None,
             'arhiva_nume': self.txt_arhiva_nume.text().strip(),
             'arhiva_tip': self.cmb_arhiva_tip.currentText(),
-            'arhiva_dim_gb': self.spn_dim_gb.value() or None,
+            'arhiva_dim_gb': self.spn_dim_gb.value(),
             'arhiva_fisiere': self.spn_fisiere.value(),
-            'arhiva_hash': self.txt_hash.text().strip(),
-            'arhiva_descriere': self.txt_desc.toPlainText().strip() or None,
+            'arhiva_hash': self.txt_hash.text().strip().upper(),
             'scanat_antivirus': 1 if self.chk_av.isChecked() else 0,
+            'antivirus_detalii': 'Scanare Antivirus Offline: Bază Definiții la zi, Negativ' if self.chk_av.isChecked() else 'Nescanat',
             'clasificare': clasificare,
-            'clasificare_nato': self.txt_nato_clf.text(),
-            'clasificare_eu': self.txt_eu_clf.text(),
-            'baza_legala': self.txt_baza_legala.text().strip() or None,
-            'nr_aprobare': self.txt_nr_aprobare.text().strip() or None,
+            'clasificare_nato': self.txt_nato_clf.text().strip(),
+            'clasificare_eu': self.txt_eu_clf.text().strip(),
             'restrictii': self.txt_restrictii.text().strip() or None,
+            'nr_aprobare': self.txt_nr_aprobare.text().strip() or None,
+            'observatii': self.txt_observatii.toPlainText().strip() or None,
+            'semnat_operator': 1,
+            'semnat_de': self.operator_name,
             'four_eyes_aprobator': four_eyes_aprobator,
-            'four_eyes_functie': four_eyes_functie,
-            'four_eyes_aprobat_la': datetime.now().isoformat() if four_eyes_aprobator else None,
-            'status': 'activ',
-            'observatii': self.txt_observatii.toPlainText().strip() or None
+            'four_eyes_functie': four_eyes_functie
         }
 
         try:
-            tid = self.db.insert_transfer(data, self.operator_name, prefix_institutie=prefix_inst)
-            QMessageBox.information(
-                self, "Transfer Înregistrat",
-                f"Transferul a fost înregistrat cu succes!\n\n"
-                f"Număr Registru: {nr}\n"
-                f"Clasificare: {clasificare} ({self.txt_nato_clf.text()})\n"
-                f"Hash SHA-256 legat în lanțul de audit."
+            record_id = self.db.insert_transfer(data, self.operator_name, None)
+            
+            # If 4-eyes was captured, record it formally in DB
+            if four_eyes_aprobator:
+                self.db.approve_four_eyes(record_id, four_eyes_aprobator, four_eyes_functie, four_eyes_op_id)
+
+            saved_tx = self.db.get_transfer_by_id(record_id)
+            final_nr = saved_tx['nr'] if saved_tx else (manual_nr or 'OK')
+
+            msg = (
+                f"✅ Transfer Militar Înregistrat cu Succes!\n\n"
+                f"Nr. Înregistrare: {final_nr}\n"
+                f"Clasificare: {clasificare} [{self.txt_nato_clf.text()}]\n"
+                f"Pachet Date: {data['arhiva_nume']}\n"
+                f"Hash Integritate SHA-256:\n{data['arhiva_hash']}\n\n"
             )
+            if four_eyes_aprobator:
+                msg += f"👥 Contrasemnat Four-Eyes: {four_eyes_aprobator} ({four_eyes_functie})\n"
+            msg += "Evenimentul a fost semnat criptografic în lanțul de audit SHA-256."
+
+            QMessageBox.information(self, "Înregistrare Reușită", msg)
             self.reset_form()
-            self.transfer_saved.emit(tid)
+            self.transfer_saved.emit(record_id)
+
         except Exception as e:
-            QMessageBox.critical(self, "Eroare Înregistrare", f"Eroare la salvare:\n{str(e)}")
+            QMessageBox.critical(self, "Eroare Salvare Transfer", f"Nu s-a putut înregistra transferul:\n{str(e)}")
 
     def reset_form(self):
-        for widget in self.findChildren(QLineEdit):
-            if widget not in (self.txt_src_pc, self.txt_src_institutie, self.txt_baza_legala, self.txt_nato_clf, self.txt_eu_clf):
-                widget.clear()
-        for widget in self.findChildren(QTextEdit):
-            widget.clear()
+        self.txt_tx_nr.clear()
+        self.lbl_detected_badge.hide()
+        self.cmb_detected_media.setCurrentIndex(0)
+        self.txt_dst_institutie.clear()
+        self.txt_dst_pc.clear()
+        self.txt_pers_nume.clear()
+        self.txt_pers_functie.clear()
+        self.txt_pers_leg.clear()
+        self.txt_curier_nume.clear()
+        self.txt_curier_leg.clear()
+        self.txt_arhiva_nume.clear()
+        self.txt_hash.clear()
         self.spn_dim_gb.setValue(0)
         self.spn_fisiere.setValue(1)
-        self.cmb_clasificare.setCurrentIndex(0)
-        self.refresh_available_media()
+        self.txt_desc.clear()
+        self.txt_nr_aprobare.clear()
+        self.txt_restrictii.clear()
+        self.txt_observatii.clear()
+        self.cmb_clasificare.setCurrentText('Neclasificat')

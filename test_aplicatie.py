@@ -232,6 +232,32 @@ def test_sanitize_media_nist80088r2():
     print("PASS: test_sanitize_media_nist80088r2")
 
 
+def test_manual_and_parsed_registration_number_support():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = DatabaseManager(os.path.join(tmp, "test.db"))
+        # Manual registration number format (e.g. 2150-23SSv)
+        data = {
+            'nr': '2150-23SSv',
+            'src_institutie': 'MApN / U.M. 01234',
+            'src_pc_nume': 'PC-01',
+            'src_medium': 'SSD NVMe',
+            'dst_institutie': 'Statul Major',
+            'pers_nume': 'Lt. Col. Marinescu',
+            'transfer_medium': 'Stick USB',
+            'arhiva_nume': '2150-23SSv.zip',
+            'arhiva_hash': 'D7A8FBB307D7809469CA9ABCB0082E4F8D5651E46D3CD0CCE0D7AEF4DE97B9C2',
+            'clasificare': 'Secret de Serviciu'
+        }
+        rec_id = db.insert_transfer(data, "Operator Test", None)
+        saved = db.get_transfer_by_id(rec_id)
+        assert saved['nr'] == '2150-23SSv'
+        assert saved['clasificare'] == 'Secret de Serviciu'
+        assert saved['clasificare_nato'] == 'NATO RESTRICTED'
+        assert saved['clasificare_eu'] == 'RESTREINT UE / EU RESTRICTED'
+        db.close()
+    print("PASS: test_manual_and_parsed_registration_number_support")
+
+
 if __name__ == "__main__":
     test_default_operators_and_nato_clearance()
     test_pin_authentication()
@@ -239,7 +265,8 @@ if __name__ == "__main__":
     test_endpoint_protector_device_fingerprinting_and_friendly_name()
     test_device_classification_ceiling_enforcement()
     test_insert_transfer_with_nato_eu_and_hash()
+    test_manual_and_parsed_registration_number_support()
     test_four_eyes_approval()
     test_audit_chain_tamper_detection()
     test_sanitize_media_nist80088r2()
-    print("\n9/9 teste trecute cu succes.")
+    print("\n10/10 teste trecute cu succes.")
