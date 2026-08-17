@@ -143,6 +143,7 @@ class DatabaseManager:
                 CREATE TABLE medii_amprentate (
                     id TEXT PRIMARY KEY,
                     cod_inventar TEXT UNIQUE NOT NULL,
+                    denumire_custom TEXT,
                     host_binding TEXT NOT NULL,
                     tip_mediu TEXT NOT NULL,
                     producator TEXT,
@@ -166,6 +167,11 @@ class DatabaseManager:
                     observatii TEXT
                 )
             """)
+
+        if "medii_amprentate" in existing_tables:
+            cols = [c[1] for c in cursor.execute("PRAGMA table_info(medii_amprentate)").fetchall()]
+            if "denumire_custom" not in cols:
+                cursor.execute("ALTER TABLE medii_amprentate ADD COLUMN denumire_custom TEXT")
             # Copy old data
             old_media = cursor.execute("SELECT * FROM medii_stocare").fetchall()
             for om in old_media:
@@ -343,6 +349,7 @@ class DatabaseManager:
         data_to_insert = {
             'id': media_id,
             'cod_inventar': cod_inv,
+            'denumire_custom': data.get('denumire_custom') or data.get('model') or cod_inv,
             'host_binding': data.get('host_binding') or self.local_host,
             'tip_mediu': data.get('tip_mediu', 'Stick USB'),
             'producator': data.get('producator') or 'Generic',
@@ -372,9 +379,27 @@ class DatabaseManager:
 
         self._log_audit(
             None, "DEVICE_FINGERPRINT_ENROLLED", operator_name,
-            f"Amprentat mediu nou [{cod_inv}] VID:{data_to_insert['vid']} PID:{data_to_insert['pid']} S/N:{data_to_insert['serie_hardware']} pe statia {data_to_insert['host_binding']} cu plafon {clasificare_max}"
+            f"Amprentat mediu nou [{cod_inv}] Nume: '{data_to_insert['denumire_custom']}' VID:{data_to_insert['vid']} PID:{data_to_insert['pid']} S/N:{data_to_insert['serie_hardware']} pe statia {data_to_insert['host_binding']} cu plafon {clasificare_max}"
         )
         return media_id
+
+    def rename_medium_friendly_name(self, medium_id: str, new_name: str, operator_name: str):
+        """Redenumeste eticheta prietenoasa/personalizata a volumului fara a altera datele hardware."""
+        now = datetime.now().isoformat()
+        med = self.get_medium_by_id(medium_id)
+        if not med:
+            raise ValueError("Mediu amprentat inexistent")
+        old_name = med.get('denumire_custom') or med.get('cod_inventar')
+        clean_name = new_name.strip()
+        self.conn.execute(
+            "UPDATE medii_amprentate SET denumire_custom=?, data_modificare=? WHERE id=?",
+            (clean_name, now, medium_id)
+        )
+        self.conn.commit()
+        self._log_audit(
+            None, "DEVICE_RENAMED", operator_name,
+            f"Redenumit volum [{med['cod_inventar']}] din '{old_name}' in '{clean_name}' (S/N Hardware: {med['serie_hardware']})"
+        )
 
     def get_amprentate_media(self, status_politica: Optional[str] = None, search: Optional[str] = None) -> List[Dict]:
         query = "SELECT * FROM medii_amprentate WHERE 1=1"

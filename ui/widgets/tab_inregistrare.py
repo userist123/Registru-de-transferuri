@@ -138,20 +138,23 @@ class TabInregistrare(QWidget):
         form_med.addRow("VID : PID:", self.txt_med_vid_pid)
 
         self.txt_med_label = QLineEdit()
+        self.txt_med_label.setReadOnly(True)
         self.txt_med_label.setPlaceholderText("Etichetă militară / Cod inventar...")
-        form_med.addRow("Cod Inventar / Etichetă:", self.txt_med_label)
+        form_med.addRow("Nume Volum / Cod: 🔒", self.txt_med_label)
 
         cap_layout = QHBoxLayout()
         self.spn_med_cap = QDoubleSpinBox()
         self.spn_med_cap.setRange(0, 100000)
         self.spn_med_cap.setSuffix(" GB")
+        self.spn_med_cap.setReadOnly(True)
         cap_layout.addWidget(self.spn_med_cap)
         cap_layout.addWidget(QLabel("Liber:"))
         self.spn_med_free = QDoubleSpinBox()
         self.spn_med_free.setRange(0, 100000)
         self.spn_med_free.setSuffix(" GB")
+        self.spn_med_free.setReadOnly(True)
         cap_layout.addWidget(self.spn_med_free)
-        form_med.addRow("Capacitate:", cap_layout)
+        form_med.addRow("Capacitate Hardware: 🔒", cap_layout)
 
         self.lbl_media_security_status = QLabel("Niciun mediu selectat")
         self.lbl_media_security_status.setStyleSheet("font-weight: bold; color: #8b949e;")
@@ -175,7 +178,8 @@ class TabInregistrare(QWidget):
         form_flux.addRow("Unitate / Instituție Sursă: *", self.txt_src_institutie)
 
         self.txt_src_pc = QLineEdit(self.db.local_host)
-        form_flux.addRow("Stație / Sistem Sursă: *", self.txt_src_pc)
+        self.txt_src_pc.setReadOnly(True)
+        form_flux.addRow("Stație / Sistem Sursă: 🔒", self.txt_src_pc)
 
         self.txt_dst_institutie = self._completer_field('dst_institutie')
         self.txt_dst_institutie.setPlaceholderText("Ex: MApN / Statul Major al Apărării / U.M. 02468")
@@ -350,14 +354,15 @@ class TabInregistrare(QWidget):
         self.txt_med_tip.setText(f"{dev.get('producator', '')} {dev.get('model', '')} ({dev.get('tip_mediu', 'Stick USB')})")
         self.txt_med_sn.setText(dev.get('serial_number', ''))
         self.txt_med_vid_pid.setText(f"{dev.get('vid', '')}:{dev.get('pid', '')}")
-        self.txt_med_label.setText(dev.get('cod_inventar', ''))
+        custom_or_inv = dev.get('denumire_custom') or dev.get('cod_inventar') or 'Mediu Amovibil'
+        self.txt_med_label.setText(f"{custom_or_inv} [{dev.get('cod_inventar', 'N/A')}]")
         self.spn_med_cap.setValue(float(dev.get('capacitate_gb', 0)))
         self.spn_med_free.setValue(float(dev.get('liber_gb', 0)))
 
         if dev.get('is_amprentat'):
             pol = dev.get('status_politica', 'autorizat_rw')
             clf = dev.get('clasificare_max', 'Neclasificat')
-            self.lbl_media_security_status.setText(f"✅ Mediu Amprentat [{dev.get('cod_inventar')}] | Plafon Maxim: {clf} | Politică: {pol.upper()}")
+            self.lbl_media_security_status.setText(f"✅ Mediu Amprentat: '{custom_or_inv}' | Plafon: {clf} | Politică: {pol.upper()}")
             self.lbl_media_security_status.setStyleSheet("color: #3fb950; font-weight: bold;")
         else:
             self.lbl_media_security_status.setText("⚠️ MEDIU NEAMPRENTAT PE ACEASTĂ STAȚIE! Transferul poate fi restricționat conform SecOPs.")

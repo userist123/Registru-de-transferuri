@@ -89,6 +89,7 @@ CREATE INDEX IF NOT EXISTS idx_transferuri_directie ON transferuri(directie_tran
 CREATE TABLE IF NOT EXISTS medii_amprentate (
     id TEXT PRIMARY KEY,
     cod_inventar TEXT UNIQUE NOT NULL,
+    denumire_custom TEXT, -- Nume prietenos/personalizat (in loc de Local Disk)
     host_binding TEXT NOT NULL, -- Numele/ID-ul statiei locale autorizate
     tip_mediu TEXT NOT NULL, -- Stick USB, SSD Extern, HDD Extern, Mediu Optic Securizat, Card SD
     producator TEXT,

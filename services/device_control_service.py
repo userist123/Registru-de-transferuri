@@ -1,9 +1,9 @@
 """
 Device Control Service - Scanner Hardware & Monitor Medii Amprentate (Endpoint Protector Model)
-Extrage VID, PID, Serie Hardware reala si verifica instant statusul in baza de date a statiei.
+Extrage VID, PID, Serie Hardware reala, Nume Volum Windows si verifica instant statusul in baza de date a statiei.
 """
 import re, subprocess, shutil, os, platform
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from database.db import DatabaseManager
 
 
@@ -14,7 +14,7 @@ class DeviceControlService:
     def scan_connected_devices(self) -> List[Dict]:
         """
         Scaneaza toate mediile de stocare amovibile / USB conectate fizic la statie.
-        Extrage VID, PID, Serial Number si statusul de autorizare din baza de date.
+        Extrage VID, PID, Serial Number, Nume Volum real si statusul de autorizare din baza de date.
         """
         devices = []
         if platform.system() == "Windows":
@@ -31,6 +31,7 @@ class DeviceControlService:
                 dev['is_amprentat'] = True
                 dev['medium_id'] = matched_medium['id']
                 dev['cod_inventar'] = matched_medium['cod_inventar']
+                dev['denumire_custom'] = matched_medium.get('denumire_custom') or dev.get('volume_name') or matched_medium['cod_inventar']
                 dev['status_politica'] = matched_medium['status_politica']
                 dev['clasificare_max'] = matched_medium['clasificare_max']
                 dev['clasificare_max_nato'] = matched_medium.get('clasificare_max_nato', 'NATO UNCLASSIFIED')
@@ -40,6 +41,7 @@ class DeviceControlService:
                 dev['is_amprentat'] = False
                 dev['medium_id'] = None
                 dev['cod_inventar'] = "NEAMPRENTAT"
+                dev['denumire_custom'] = dev.get('volume_name') or "Dispozitiv Neamprentat"
                 dev['status_politica'] = "neamprentat"
                 dev['clasificare_max'] = "N/A"
                 dev['clasificare_max_nato'] = "N/A"
@@ -55,10 +57,18 @@ class DeviceControlService:
             $drive = $_
             $partitions = Get-CimAssociatedInstance -InputObject $drive -ResultClassName Win32_DiskPartition
             $letters = @()
+            $volNames = @()
+            $fileSystems = @()
+            $volSerials = @()
             foreach ($part in $partitions) {
                 $logical = Get-CimAssociatedInstance -InputObject $part -ResultClassName Win32_LogicalDisk
                 foreach ($log in $logical) {
-                    if ($log.DeviceID) { $letters += $log.DeviceID }
+                    if ($log.DeviceID) { 
+                        $letters += $log.DeviceID 
+                        if ($log.VolumeName) { $volNames += $log.VolumeName }
+                        if ($log.FileSystem) { $fileSystems += $log.FileSystem }
+                        if ($log.VolumeSerialNumber) { $volSerials += $log.VolumeSerialNumber }
+                    }
                 }
             }
             [PSCustomObject]@{
@@ -68,11 +78,14 @@ class DeviceControlService:
                 Size = $drive.Size
                 InterfaceType = $drive.InterfaceType
                 DriveLetters = ($letters -join ', ')
+                VolumeName = ($volNames -join ', ')
+                FileSystem = ($fileSystems -join ', ')
+                VolumeSerialNumber = ($volSerials -join ', ')
             }
         } | ConvertTo-Json -Compress
         """
         try:
-            res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], capture_output=True, text=True, timeout=5)
+            res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], capture_output=True, text=True, timeout=6)
             if res.returncode == 0 and res.stdout.strip():
                 import json
                 raw = json.loads(res.stdout.strip())
@@ -85,6 +98,10 @@ class DeviceControlService:
                     
                     letter = item.get('DriveLetters', '')
                     free_gb = 0.0
+                    vol_name = item.get('VolumeName', '').strip()
+                    fs = item.get('FileSystem', 'FAT32')
+                    vol_sn = item.get('VolumeSerialNumber', '')
+                    
                     if letter and os.path.exists(letter.split(',')[0] + "\\"):
                         try:
                             usage = shutil.disk_usage(letter.split(',')[0] + "\\")
@@ -100,6 +117,9 @@ class DeviceControlService:
                         'pid': pid,
                         'serial_number': sn,
                         'drive_letter': letter or "N/A",
+                        'volume_name': vol_name or f"Local Disk ({letter})",
+                        'file_system': fs or "FAT32",
+                        'volume_serial': vol_sn,
                         'capacitate_gb': size_gb,
                         'liber_gb': free_gb,
                         'tip_mediu': 'Stick USB' if size_gb < 128 else 'SSD Extern'
@@ -107,7 +127,7 @@ class DeviceControlService:
         except Exception:
             pass
 
-        # Fallback to logical drive inspection if WMI returns empty or in restricted airgap environments
+        # Fallback to logical drive inspection if WMI returns empty
         if not devices:
             for ltr in "DEFGHIJKLMNOPQRSTUVWXYZ":
                 path = f"{ltr}:\\"
@@ -125,6 +145,9 @@ class DeviceControlService:
                                 'pid': '5583',
                                 'serial_number': f'SN-DRIVE-{ltr}',
                                 'drive_letter': f'{ltr}:',
+                                'volume_name': f'USB_DRIVE_{ltr}',
+                                'file_system': 'FAT32',
+                                'volume_serial': f'VOL-{ltr}123',
                                 'capacitate_gb': tot_gb,
                                 'liber_gb': free_gb,
                                 'tip_mediu': 'Stick USB'
@@ -142,6 +165,9 @@ class DeviceControlService:
             'pid': '1666',
             'serial_number': '001A2B3C4D',
             'drive_letter': '/media/usb0',
+            'volume_name': 'MAPN_SEC_USB',
+            'file_system': 'ext4',
+            'volume_serial': 'VOL-POSIX-99',
             'capacitate_gb': 64.0,
             'liber_gb': 42.5,
             'tip_mediu': 'Stick USB'

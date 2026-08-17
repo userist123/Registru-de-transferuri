@@ -42,6 +42,11 @@ QLineEdit:focus, QComboBox:focus, QTextEdit:focus, QSpinBox:focus {
     border: 1px solid #58a6ff;
     background-color: #111822;
 }
+QLineEdit:read-only, QTextEdit:read-only {
+    background-color: #06090e;
+    color: #8b949e;
+    border: 1px solid #21262d;
+}
 QComboBox::drop-down {
     border: none;
     width: 24px;

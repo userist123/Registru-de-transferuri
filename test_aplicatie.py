@@ -45,7 +45,7 @@ def test_numbering_hg585():
     print("PASS: test_numbering_hg585")
 
 
-def test_endpoint_protector_device_fingerprinting():
+def test_endpoint_protector_device_fingerprinting_and_friendly_name():
     with tempfile.TemporaryDirectory() as tmp:
         db = DatabaseManager(os.path.join(tmp, "test.db"))
         # Enroll device
@@ -75,8 +75,16 @@ def test_endpoint_protector_device_fingerprinting():
         db.update_medium_policy(dev_id, 'autorizat_ro', 'Admin Test', 'Test restrictie read-only')
         updated = db.get_medium_by_id(dev_id)
         assert updated['status_politica'] == 'autorizat_ro'
+
+        # Test renaming friendly name (in loc de Local Disk) fara a altera datele hardware
+        db.rename_medium_friendly_name(dev_id, "Stick Operativ MAPN 01", "Admin Test")
+        renamed = db.get_medium_by_id(dev_id)
+        assert renamed['denumire_custom'] == "Stick Operativ MAPN 01"
+        assert renamed['serie_hardware'] == "4C53000123456789" # Hardware serial remains strictly immutable!
+        assert renamed['vid'] == "0781"
+        assert renamed['pid'] == "5583"
         db.close()
-    print("PASS: test_endpoint_protector_device_fingerprinting")
+    print("PASS: test_endpoint_protector_device_fingerprinting_and_friendly_name")
 
 
 def test_device_classification_ceiling_enforcement():
@@ -228,7 +236,7 @@ if __name__ == "__main__":
     test_default_operators_and_nato_clearance()
     test_pin_authentication()
     test_numbering_hg585()
-    test_endpoint_protector_device_fingerprinting()
+    test_endpoint_protector_device_fingerprinting_and_friendly_name()
     test_device_classification_ceiling_enforcement()
     test_insert_transfer_with_nato_eu_and_hash()
     test_four_eyes_approval()
