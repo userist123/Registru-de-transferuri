@@ -249,24 +249,24 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBox x:Name="TxtPayloadPath" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,8,0" />
-                                            <Button Grid.Column="1" Content="📁 Selectează" Width="100" Height="34" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnSelectPayloadFileClick" />
+                                            <TextBox x:Name="TxtPayloadPath" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Margin="0,0,8,0" />
+                                            <Button Grid.Column="1" Content="📁 Selectează" Width="125" Height="36" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnSelectPayloadFileClick" />
                                         </Grid>
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,10">
                                         <TextBlock Text="Denumire Pachet / Arhivă:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                                        <TextBox x:Name="TxtPayloadFileName" Text="Pachet_Date_Securizat.zip" Style="{StaticResource TacticalTextBoxStyle}" Height="34" />
+                                        <TextBox x:Name="TxtPayloadFileName" Text="Pachet_Date_Securizat.zip" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,10">
                                         <TextBlock Text="Hash SHA-256 Calculat (Imuabil): 🔒" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                                        <TextBox x:Name="TxtPayloadHash" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" Height="34" FontFamily="Consolas, Cascadia Code" />
+                                        <TextBox x:Name="TxtPayloadHash" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" Height="36" FontFamily="Consolas, Cascadia Code" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
                                         <TextBlock Text="Descriere Conținut Pachet &amp; Justificare:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                                        <TextBox x:Name="TxtContentDesc" Text="Pachet de actualizări și documente operative conform SecOPs." Style="{StaticResource TacticalTextBoxStyle}" Height="50" TextWrapping="Wrap" AcceptsReturn="True" />
+                                        <TextBox x:Name="TxtContentDesc" Text="Pachet de actualizări și documente operative conform SecOPs." Style="{StaticResource TacticalTextBoxStyle}" Height="55" TextWrapping="Wrap" AcceptsReturn="True" />
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
@@ -280,7 +280,7 @@
                 <!-- 3. VIEW MEDII AMPRENTATE -->
                 <Grid x:Name="ViewMedii" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="200" />
+                        <RowDefinition Height="220" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -297,7 +297,7 @@
                                 <DataGridTemplateColumn Header="Acțiune" Width="180">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="⚡ Înregistrează / Amprentează" Height="26" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnEnrollDetectedMediaClick" />
+                                            <Button Content="⚡ Amprentează Mediu" Height="30" Padding="8,2" Margin="4" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnEnrollDetectedMediaClick" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

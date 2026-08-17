@@ -27,11 +27,11 @@
         <!-- Form Card -->
         <Border Grid.Row="1" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="8" Padding="20">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Selectați Operator Militar: *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                <ComboBox x:Name="OperatorCombo" Height="36" Margin="0,0,0,16" />
+                <TextBlock Text="Selectați Operator Militar: *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,6" />
+                <ComboBox x:Name="OperatorCombo" Height="38" Margin="0,0,0,16" />
 
-                <TextBlock Text="PIN Numeric de Autentificare (6 cifre): *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                <PasswordBox x:Name="PinBox" Style="{StaticResource TacticalPasswordBoxStyle}" Height="38" HorizontalContentAlignment="Center" MaxLength="6" KeyDown="OnPinKeyDown" />
+                <TextBlock Text="PIN Numeric de Autentificare (6 cifre): *" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,6" />
+                <PasswordBox x:Name="PinBox" Height="42" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" MaxLength="6" KeyDown="OnPinKeyDown" />
             </StackPanel>
         </Border>
 
