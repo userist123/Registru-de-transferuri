@@ -42,6 +42,17 @@ public static class ClassificationLevelExtensions
         _ => throw new ArgumentOutOfRangeException(nameof(level))
     };
 
+    /// <summary>Echivalent NATO conform Directivelor de Securitate NATO AC/35 si STANAG 4774.</summary>
+    public static string NatoEquivalent(this ClassificationLevel level) => level switch
+    {
+        ClassificationLevel.StrictSecretImportantaDeosebita => "COSMIC TOP SECRET",
+        ClassificationLevel.StrictSecret => "NATO SECRET",
+        ClassificationLevel.Secret => "NATO CONFIDENTIAL",
+        ClassificationLevel.SecretDeServiciu => "NATO RESTRICTED",
+        ClassificationLevel.Neclasificat => "NATO UNCLASSIFIED",
+        _ => throw new ArgumentOutOfRangeException(nameof(level))
+    };
+
     /// <summary>
     /// Metoda minima de sanitizare conform NIST SP 800-88 Rev. 2 (sept. 2025).
     /// Rev. 1 a fost retrasa oficial la 26.09.2025 si inlocuita integral de Rev. 2.

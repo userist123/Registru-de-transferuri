@@ -20,6 +20,16 @@ public class SecurityTests
     }
 
     [Fact]
+    public void NatoEquivalent_ConformNATO_AC35()
+    {
+        Assert.Equal("COSMIC TOP SECRET", ClassificationLevel.StrictSecretImportantaDeosebita.NatoEquivalent());
+        Assert.Equal("NATO SECRET", ClassificationLevel.StrictSecret.NatoEquivalent());
+        Assert.Equal("NATO CONFIDENTIAL", ClassificationLevel.Secret.NatoEquivalent());
+        Assert.Equal("NATO RESTRICTED", ClassificationLevel.SecretDeServiciu.NatoEquivalent());
+        Assert.Equal("NATO UNCLASSIFIED", ClassificationLevel.Neclasificat.NatoEquivalent());
+    }
+
+    [Fact]
     public void IntegrityHash_DetecteazaOriceModificare()
     {
         var t = new TransferRecord

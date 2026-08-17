@@ -5,7 +5,6 @@ from services.backup_service import BackupService
 
 
 ROLURI = ["operator", "operator_senior", "gestionar", "ofiter_securitate", "auditor", "admin"]
-CLASIFICARI = ["Neclasificat", "Secret de Serviciu", "Secret", "Strict Secret", "Strict Secret de Importanță Deosebită"]
 
 
 class TabAdmin(QWidget):
@@ -19,13 +18,16 @@ class TabAdmin(QWidget):
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(12)
 
-        grp_add = QGroupBox("Adaugă Operator Nou")
+        grp_add = QGroupBox("Adaugă Operator Militar Nou")
         form = QFormLayout(grp_add)
         self.inp_nume = QLineEdit()
         self.inp_functie = QLineEdit()
+        self.inp_unitate = QLineEdit("MApN / Structura Securitate")
         self.inp_autorizatie = QComboBox()
-        self.inp_autorizatie.addItems(CLASIFICARI)
+        self.inp_autorizatie.addItems(self.db.CLASSIFICATION_LEVELS)
         self.inp_rol = QComboBox()
         self.inp_rol.addItems(ROLURI)
         self.inp_pin = QLineEdit()
@@ -34,27 +36,29 @@ class TabAdmin(QWidget):
         self.inp_pin.setPlaceholderText("PIN de 6 cifre")
 
         form.addRow("Nume Complet *:", self.inp_nume)
-        form.addRow("Funcție:", self.inp_functie)
-        form.addRow("Nivel Autorizare:", self.inp_autorizatie)
-        form.addRow("Rol:", self.inp_rol)
-        form.addRow("PIN Inițial *:", self.inp_pin)
+        form.addRow("Funcție & Grad:", self.inp_functie)
+        form.addRow("Unitate Militară:", self.inp_unitate)
+        form.addRow("Nivel Autorizare (Clearance):", self.inp_autorizatie)
+        form.addRow("Rol Sistem:", self.inp_rol)
+        form.addRow("PIN Inițial (6 cifre) *:", self.inp_pin)
 
-        btn_add = QPushButton("➕ Adaugă Operator")
+        btn_add = QPushButton("➕ Înregistrează Operator")
         btn_add.setObjectName("primary")
         btn_add.clicked.connect(self._add_operator)
         form.addRow(btn_add)
         layout.addWidget(grp_add)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Nume", "Funcție", "Rol", "Autorizare"])
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["Nume Operator", "Funcție", "Unitate", "Rol", "Clearance Național / NATO"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
 
-        grp_backup = QGroupBox("Backup Bază de Date")
+        grp_backup = QGroupBox("Backup Bază de Date Criptată")
         backup_row = QHBoxLayout(grp_backup)
         btn_backup = QPushButton("💾 Creează Backup Acum")
+        btn_backup.setObjectName("secondary")
         btn_backup.clicked.connect(self._create_backup)
         backup_row.addWidget(btn_backup)
         layout.addWidget(grp_backup)
@@ -66,6 +70,7 @@ class TabAdmin(QWidget):
         try:
             self.db.add_operator(
                 self.inp_nume.text().strip(), self.inp_functie.text().strip(),
+                self.inp_unitate.text().strip(),
                 self.inp_autorizatie.currentText(), self.inp_rol.currentText(),
                 self.inp_pin.text().strip(), self.operator['nume']
             )
@@ -79,8 +84,10 @@ class TabAdmin(QWidget):
         ops = self.db.get_active_operators()
         self.table.setRowCount(len(ops))
         for i, op in enumerate(ops):
-            for j, key in enumerate(['nume', 'functie', 'rol', 'autorizatie']):
-                self.table.setItem(i, j, QTableWidgetItem(str(op.get(key, ''))))
+            clf_str = f"{op.get('autorizatie', '')} ({op.get('autorizatie_nato', '')})"
+            values = [op.get('nume', ''), op.get('functie', ''), op.get('unitate_militara', ''), op.get('rol', ''), clf_str]
+            for j, val in enumerate(values):
+                self.table.setItem(i, j, QTableWidgetItem(str(val)))
 
     def _create_backup(self):
         try:
