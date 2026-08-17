@@ -206,4 +206,31 @@ public class SecurityTests
         Assert.Contains("HG 585/2002 Art. 65-72", html);
         Assert.Contains("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", html);
     }
+
+    [Fact]
+    public void PayloadDlpInspector_BlocksExecutableAndAllowsPdfZip()
+    {
+        var tempExe = Path.Combine(Path.GetTempPath(), "test_disguised.pdf");
+        var tempZip = Path.Combine(Path.GetTempPath(), "test_valid.zip");
+
+        try
+        {
+            // Create a fake PDF with MZ header (disguised executable)
+            File.WriteAllBytes(tempExe, new byte[] { 0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00 });
+            var resExe = PayloadDlpInspector.InspectFile(tempExe);
+            Assert.False(resExe.IsSafe);
+            Assert.Equal(PayloadFileType.ExecutableBlocked, resExe.DetectedType);
+
+            // Create a valid zip header
+            File.WriteAllBytes(tempZip, new byte[] { 0x50, 0x4B, 0x03, 0x04, 0x14, 0x00 });
+            var resZip = PayloadDlpInspector.InspectFile(tempZip);
+            Assert.True(resZip.IsSafe);
+            Assert.Equal(PayloadFileType.ZipArchive, resZip.DetectedType);
+        }
+        finally
+        {
+            if (File.Exists(tempExe)) File.Delete(tempExe);
+            if (File.Exists(tempZip)) File.Delete(tempZip);
+        }
+    }
 }

@@ -9,6 +9,7 @@ using RegistruTransferuri.Data;
 using RegistruTransferuri.Hardware;
 using RegistruTransferuri.Models;
 using RegistruTransferuri.Services;
+using RegistruTransferuri.Security;
 using RegistruTransferuri.UI.Dialogs;
 
 namespace RegistruTransferuri.UI;
@@ -42,13 +43,33 @@ public partial class MainWindow : Window
         CmbNewOpClearance.ItemsSource = Enum.GetValues<ClassificationLevel>();
         CmbNewOpClearance.SelectedItem = ClassificationLevel.Secret;
 
-        // Auto PnP Polling Timer
+        // Event-Driven Native Windows Device Notification Hook (0 latency)
+        SourceInitialized += OnSourceInitialized;
+
+        // Fallback Auto PnP Polling Timer
         _pnpTimer.Interval = TimeSpan.FromSeconds(3);
         _pnpTimer.Tick += (s, e) => RefreshLiveMediaSilent();
         _pnpTimer.Start();
 
         RefreshAll();
         InitOracleDefaultView();
+    }
+
+    private void OnSourceInitialized(object? sender, EventArgs e)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        var source = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+        source?.AddHook(HwndHook);
+    }
+
+    private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_DEVICECHANGE = 0x0219;
+        if (msg == WM_DEVICECHANGE)
+        {
+            RefreshLiveMediaSilent();
+        }
+        return IntPtr.Zero;
     }
 
     private void RefreshAll()
@@ -278,6 +299,18 @@ public partial class MainWindow : Window
                     CmbNewTxClass.SelectedItem = ClassificationLevel.StrictSecret;
                 else if (fi.Name.Contains("S", StringComparison.OrdinalIgnoreCase))
                     CmbNewTxClass.SelectedItem = ClassificationLevel.Secret;
+            }
+
+            // DLP & Magic Bytes Inspection
+            var dlp = PayloadDlpInspector.InspectFile(ofd.FileName);
+            if (!dlp.IsSafe)
+            {
+                MessageBox.Show(dlp.Details, "DLP ALERT — Fișier Blocat", MessageBoxButton.OK, MessageBoxImage.Stop);
+                _db.AppendAudit("DLP_BLOCK", _operator.FullName, $"Blocat transfer fișier executabil/contaminat: {fi.Name}");
+                TxtPayloadPath.Clear();
+                TxtPayloadFileName.Clear();
+                TxtPayloadHash.Clear();
+                return;
             }
 
             // Calculate instant SHA-256
