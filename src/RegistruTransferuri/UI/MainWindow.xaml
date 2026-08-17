@@ -376,55 +376,54 @@
 
                 <!-- 5. VIEW STATISTICI -->
                 <Grid x:Name="ViewStats" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                                <!-- KPI 1 -->
+                                <Border Grid.Column="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="TOTAL TRANSFERURI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
+                                        <TextBlock x:Name="KpiTotalTransfers" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Violet}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
 
-                        <!-- KPI 1 -->
-                        <Border Grid.Column="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,8,0">
-                            <StackPanel>
-                                <TextBlock Text="TOTAL TRANSFERURI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                <TextBlock x:Name="KpiTotalTransfers" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Violet}" Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Border>
+                                <!-- KPI 2 -->
+                                <Border Grid.Column="1" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="SECRET / NATO CONFIDENTIAL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
+                                        <TextBlock x:Name="KpiSecretTransfers" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Amber}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
 
-                        <!-- KPI 2 -->
-                        <Border Grid.Column="1" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,8,0">
-                            <StackPanel>
-                                <TextBlock Text="SECRET / NATO CONFIDENTIAL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                <TextBlock x:Name="KpiSecretTransfers" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Amber}" Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Border>
+                                <!-- KPI 3 -->
+                                <Border Grid.Column="2" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,8,0">
+                                    <StackPanel>
+                                        <TextBlock Text="MEDII AMPRENTATE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
+                                        <TextBlock x:Name="KpiEnrolledMedia" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Emerald}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
 
-                        <!-- KPI 3 -->
-                        <Border Grid.Column="2" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,8,0">
-                            <StackPanel>
-                                <TextBlock Text="MEDII AMPRENTATE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                <TextBlock x:Name="KpiEnrolledMedia" Text="0" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Emerald}" Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Border>
+                                <!-- KPI 4 -->
+                                <Border Grid.Column="3" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="VOLUM TOTAL DATE (GB)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
+                                        <TextBlock x:Name="KpiVolumeGb" Text="0.0 GB" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.CyberBlue}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
 
-                        <!-- KPI 4 -->
-                        <Border Grid.Column="3" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="8,0,0,0">
-                            <StackPanel>
-                                <TextBlock Text="VOLUM TOTAL DATE (GB)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                <TextBlock x:Name="KpiVolumeGb" Text="0.0 GB" FontSize="26" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.CyberBlue}" Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-
-                    <GroupBox Grid.Row="1" Header="📜 Raport Sintetic de Conformitate INFOSEC &amp; Registru Militar" Style="{StaticResource TacticalGroupBoxStyle}">
-                        <TextBox x:Name="TxtStatsReport" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="12" />
-                    </GroupBox>
+                            <GroupBox Header="📜 Raport Sintetic de Conformitate INFOSEC &amp; Registru Militar" Style="{StaticResource TacticalGroupBoxStyle}" MinHeight="400">
+                                <TextBox x:Name="TxtStatsReport" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="12" MinHeight="350" />
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
 
                 <!-- 6. VIEW AUDIT -->
@@ -460,43 +459,47 @@
 
                 <!-- 7. VIEW ADMIN -->
                 <Grid x:Name="ViewAdmin" Visibility="Collapsed">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="380" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="380" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                    <GroupBox Grid.Column="0" Header="👤 Înregistrare Operator Militar Nou" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,0,12,0">
-                        <StackPanel Margin="4,8,4,4">
-                            <TextBlock Text="Nume Complet &amp; Grad: *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                            <TextBox x:Name="TxtNewOpName" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
+                            <GroupBox Grid.Column="0" Header="👤 Înregistrare Operator Militar Nou" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,0,12,0">
+                                <StackPanel Margin="4,8,4,4">
+                                    <TextBlock Text="Nume Complet &amp; Grad: *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBox x:Name="TxtNewOpName" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
 
-                            <TextBlock Text="Funcție &amp; Responsabilitate:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                            <TextBox x:Name="TxtNewOpRole" Text="Operator Transferuri IT" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
+                                    <TextBlock Text="Funcție &amp; Responsabilitate:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBox x:Name="TxtNewOpRole" Text="Operator Transferuri IT" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
 
-                            <TextBlock Text="Unitate Militară:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                            <TextBox x:Name="TxtNewOpUnit" Text="MApN / Structura Securitate" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
+                                    <TextBlock Text="Unitate Militară:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBox x:Name="TxtNewOpUnit" Text="MApN / Structura Securitate" Style="{StaticResource TacticalTextBoxStyle}" Height="34" Margin="0,0,0,10" />
 
-                            <TextBlock Text="Nivel Autorizare (Clearance HG 585):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                            <ComboBox x:Name="CmbNewOpClearance" Height="34" Margin="0,0,0,10" />
+                                    <TextBlock Text="Nivel Autorizare (Clearance HG 585):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <ComboBox x:Name="CmbNewOpClearance" Height="34" Margin="0,0,0,10" />
 
-                            <TextBlock Text="PIN Inițial (6 cifre numerice): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
-                            <PasswordBox x:Name="TxtNewOpPin" Style="{StaticResource TacticalPasswordBoxStyle}" Height="34" MaxLength="6" Margin="0,0,0,16" />
+                                    <TextBlock Text="PIN Inițial (6 cifre numerice): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <PasswordBox x:Name="TxtNewOpPin" Style="{StaticResource TacticalPasswordBoxStyle}" Height="34" MaxLength="6" Margin="0,0,0,16" />
 
-                            <Button Content="➕ Înregistrează Operator" Height="38" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnAddNewOperatorClick" />
-                        </StackPanel>
-                    </GroupBox>
+                                    <Button Content="➕ Înregistrează Operator" Height="38" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnAddNewOperatorClick" />
+                                </StackPanel>
+                            </GroupBox>
 
-                    <GroupBox Grid.Column="1" Header="👥 Operatori Înregistrați în Baza de Date" Style="{StaticResource TacticalGroupBoxStyle}">
-                        <DataGrid x:Name="GridOperators" Style="{StaticResource TacticalDataGridStyle}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Nume Operator" Binding="{Binding FullName}" Width="*" FontWeight="Bold" />
-                                <DataGridTextColumn Header="Funcție" Binding="{Binding Role}" Width="140" />
-                                <DataGridTextColumn Header="Unitate" Binding="{Binding MilitaryUnit}" Width="160" />
-                                <DataGridTextColumn Header="Clearance Maxim" Binding="{Binding MaxClearance}" Width="140" />
-                                <DataGridTextColumn Header="Status" Binding="{Binding Active}" Width="80" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </GroupBox>
+                            <GroupBox Grid.Column="1" Header="👥 Operatori Înregistrați în Baza de Date" Style="{StaticResource TacticalGroupBoxStyle}" MinHeight="450">
+                                <DataGrid x:Name="GridOperators" Style="{StaticResource TacticalDataGridStyle}">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Nume Operator" Binding="{Binding FullName}" Width="*" FontWeight="Bold" />
+                                        <DataGridTextColumn Header="Funcție" Binding="{Binding Role}" Width="140" />
+                                        <DataGridTextColumn Header="Unitate" Binding="{Binding MilitaryUnit}" Width="160" />
+                                        <DataGridTextColumn Header="Clearance Maxim" Binding="{Binding MaxClearance}" Width="140" />
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Active}" Width="80" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
             </Grid>
