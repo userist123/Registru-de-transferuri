@@ -4,6 +4,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/RegistruTransferuri;component/UI/Themes/ObsidianTactical.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/RegistruTransferuri;component/UI/Themes/Colors.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/RegistruTransferuri;component/UI/Themes/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>

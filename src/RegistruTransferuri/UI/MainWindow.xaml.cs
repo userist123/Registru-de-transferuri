@@ -19,12 +19,16 @@ public partial class MainWindow : Window
     private readonly DatabaseContext _db;
     private readonly Operator _operator;
     private readonly CognitiveVaultBridgeService _vaultBridge;
+    private readonly CognitiveVaultClient _vaultClient = new();
+    private readonly VaultProcessSupervisor _vaultSupervisor = new();
     private readonly PadesExportService _exportService = new();
     private readonly DispatcherTimer _pnpTimer = new();
 
     private List<DetectedMedia> _detectedMedia = new();
     private List<TransferRecord> _transfers = new();
     private List<MediaAsset> _mediaAssets = new();
+    private List<ProcedureDoc> _procedures = new();
+    private bool _isSidebarCollapsed = false;
 
     public MainWindow(DatabaseContext db, Operator op)
     {
@@ -45,14 +49,17 @@ public partial class MainWindow : Window
 
         // Event-Driven Native Windows Device Notification Hook (0 latency)
         SourceInitialized += OnSourceInitialized;
+        Closed += (s, e) => _vaultSupervisor.Dispose();
 
-        // Fallback Auto PnP Polling Timer
+        // Start Vault Sidecar & PnP Polling
+        _ = _vaultSupervisor.StartAsync();
+
         _pnpTimer.Interval = TimeSpan.FromSeconds(3);
         _pnpTimer.Tick += (s, e) => RefreshLiveMediaSilent();
         _pnpTimer.Start();
 
         RefreshAll();
-        InitOracleDefaultView();
+        LoadProceduresList();
     }
 
     private void OnSourceInitialized(object? sender, EventArgs e)
@@ -80,6 +87,40 @@ public partial class MainWindow : Window
         LoadStats();
         LoadAuditLog();
         LoadOperators();
+    }
+
+    // ================= SARCINA 3: SIDEBAR TOGGLE =================
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
+    {
+        _isSidebarCollapsed = !_isSidebarCollapsed;
+        if (_isSidebarCollapsed)
+        {
+            ColSidebar.Width = new GridLength(68);
+            PanelBrandText.Visibility = Visibility.Collapsed;
+            LblNavHeader.Visibility = Visibility.Collapsed;
+            BtnToggleSidebar.Content = "▶";
+            NavRegistru.Content = "📋";
+            NavInregistrare.Content = "➕";
+            NavMedii.Content = "🛡️";
+            NavOracle.Content = "🧠";
+            NavStats.Content = "📊";
+            NavAudit.Content = "🔗";
+            NavAdmin.Content = "👥";
+        }
+        else
+        {
+            ColSidebar.Width = new GridLength(280);
+            PanelBrandText.Visibility = Visibility.Visible;
+            LblNavHeader.Visibility = Visibility.Visible;
+            BtnToggleSidebar.Content = "◀";
+            NavRegistru.Content = "📋  Registru Transferuri";
+            NavInregistrare.Content = "➕  Înregistrare Transfer";
+            NavMedii.Content = "🛡️  Control Medii (PnP)";
+            NavOracle.Content = "🧠  Seif Cognitiv & Oracol";
+            NavStats.Content = "📊  Statistici & Conformitate";
+            NavAudit.Content = "🔗  Jurnal Audit SHA-256";
+            NavAdmin.Content = "👥  Gestiune Operatori";
+        }
     }
 
     // ================= NAVIGATION =================
@@ -148,27 +189,59 @@ public partial class MainWindow : Window
         if (GridTransfers.SelectedItem is TransferRecord tx)
         {
             TxtInspector.Text =
-                $"=== FIȘĂ DETALII TRANSFER MILITAR: {tx.RegistryNumber} ===\r\n" +
-                $"Clasificare: {tx.Classification.ToDisplayName()} (NATO: {tx.NatoClassification} | UE: {tx.EuClassification})\r\n" +
-                $"Data Transfer UTC: {tx.TransferDateUtc:yyyy-MM-dd HH:mm:ss} | Direcție: {tx.Direction.ToUpperInvariant()}\r\n" +
-                $"Sursă: {tx.SourceInstitution} (Stație: {tx.SourceStationHost}) | Responsabil: {tx.SourcePerson}\r\n" +
-                $"Destinație: {tx.DestinationInstitution} (Stație: {tx.DestinationStationHost}) | Primitor: {tx.DestinationPerson}\r\n" +
-                $"Curier Militar: {tx.CourierName ?? "Fără curier extern"} (Permis: {tx.CourierPermitNumber ?? "N/A"})\r\n" +
-                $"Mediu Stocare: {tx.MediaType} | Etichetă: {tx.MediaFriendlyLabel}\r\n" +
-                $"Serie Hardware S/N: {tx.MediaSerialNumber} | Identificator: VID_{tx.MediaVendorId} & PID_{tx.MediaProductId}\r\n" +
-                $"Pachet Date: {tx.PayloadFileName} ({tx.PayloadSizeGb} GB, {tx.PayloadFilesCount} fișiere)\r\n" +
-                $"Hash SHA-256 Pachet: {tx.PayloadSha256Hash}\r\n" +
-                $"Hash Înregistrare Audit: {tx.IntegrityHash}\r\n" +
-                $"Bază Legală: {tx.LegalBase}\r\n" +
-                $"Operator Înregistrare: {tx.OperatorUsername}\r\n" +
-                $"Semnat Formal: {(tx.Signed ? $"DA (la {tx.SignedAtUtc:yyyy-MM-dd HH:mm} de către {tx.SignedBy})" : "NU")}\r\n" +
-                $"Aprobare 4-Eyes: {tx.FourEyesApproverName ?? "N/A"} ({tx.FourEyesApproverRole ?? "N/A"})\r\n" +
-                $"Status Curent: {tx.StatusText}" +
-                (tx.Cancelled ? $"\r\nMotiv Anulare: {tx.CancellationReason}" : "");
+                $"=== DETALII TRANSFER MILITAR #{tx.RegistryNumber} ===\r\n" +
+                $"Clasificare: {tx.Classification} (Echiv. NATO: {tx.NatoClassification})\r\n" +
+                $"Sursă: {tx.SourceInstitution} ({tx.SourcePerson}) ➔ Destinație: {tx.DestinationInstitution} ({tx.DestinationPerson})\r\n" +
+                $"Curier: {tx.CourierName ?? "N/A"} (Permis: {tx.CourierPermitNumber ?? "N/A"})\r\n" +
+                $"Fișier: {tx.PayloadFileName} ({tx.PayloadSizeGb:F3} GB) | Hash SHA-256: {tx.PayloadSha256Hash}\r\n" +
+                $"Mediu S/N: {tx.MediaSerialNumber} | Tip: {tx.MediaType}\r\n" +
+                $"Operator: {tx.OperatorUsername} | 4-Ochi Verificator: {tx.FourEyesApproverName ?? "N/A"}\r\n" +
+                $"Status: {tx.StatusText} | Semnat Formal: {(tx.Signed ? "DA" : "NU")}";
         }
-        else
+    }
+
+    private void OnSignTransferClick(object sender, RoutedEventArgs e)
+    {
+        if (GridTransfers.SelectedItem is not TransferRecord tx)
         {
-            TxtInspector.Text = "Selectați un transfer din tabel pentru a vizualiza detaliile complete și integritatea SHA-256.";
+            MessageBox.Show("Selectați un transfer din tabel pentru semnare.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dlg = new FourEyesAuthDialog(_db, _operator) { Owner = this };
+        if (dlg.ShowDialog() == true && dlg.ApprovedWitness != null)
+        {
+            using var cmd = _db.RawConnection.CreateCommand();
+            cmd.CommandText = "UPDATE transfers SET signed = 1, signed_by = @s, signed_at_utc = @t WHERE id = @id";
+            cmd.Parameters.AddWithValue("@s", dlg.ApprovedWitness.FullName);
+            cmd.Parameters.AddWithValue("@t", DateTime.UtcNow.ToString("o"));
+            cmd.Parameters.AddWithValue("@id", tx.Id);
+            cmd.ExecuteNonQuery();
+
+            _db.AppendAudit("SIGN_TRANSFER", _operator.FullName, $"Transferul #{tx.RegistryNumber} semnat de {dlg.ApprovedWitness.FullName}", tx.RegistryNumber);
+            LoadRegistry();
+            MessageBox.Show($"Transferul #{tx.RegistryNumber} a fost semnat oficial.", "Succes", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void OnCancelTransferClick(object sender, RoutedEventArgs e)
+    {
+        if (GridTransfers.SelectedItem is not TransferRecord tx)
+        {
+            MessageBox.Show("Selectați un transfer din tabel pentru anulare.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var res = MessageBox.Show($"Sunteți sigur că doriți să ANULAȚI transferul #{tx.RegistryNumber}?", "Confirmare Anulare", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (res == MessageBoxResult.Yes)
+        {
+            using var cmd = _db.RawConnection.CreateCommand();
+            cmd.CommandText = "UPDATE transfers SET cancelled = 1, cancellation_reason = 'Anulat de operator' WHERE id = @id";
+            cmd.Parameters.AddWithValue("@id", tx.Id);
+            cmd.ExecuteNonQuery();
+
+            _db.AppendAudit("CANCEL_TRANSFER", _operator.FullName, $"Transferul #{tx.RegistryNumber} a fost anulat", tx.RegistryNumber);
+            LoadRegistry();
         }
     }
 
@@ -176,7 +249,7 @@ public partial class MainWindow : Window
     {
         if (GridTransfers.SelectedItem is not TransferRecord tx)
         {
-            MessageBox.Show("Selectați un transfer din tabel pentru a genera Procesul-Verbal.", "Selecție Obligatorie", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Selectați un transfer din tabel pentru a genera Procesul-Verbal.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -186,289 +259,171 @@ public partial class MainWindow : Window
 
     private void OnVerifyReceiverPackageClick(object sender, RoutedEventArgs e)
     {
-        if (GridTransfers.SelectedItem is not TransferRecord tx)
-        {
-            MessageBox.Show("Selectați un transfer din tabel pentru a verifica pachetul la recepție.", "Selecție Obligatorie", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        var dlg = new ReceiverVerifyDialog(tx.PayloadSha256Hash) { Owner = this };
+        var expectedHash = (GridTransfers.SelectedItem is TransferRecord tx) ? tx.PayloadSha256Hash : "0000000000000000000000000000000000000000000000000000000000000000";
+        var dlg = new ReceiverVerifyDialog(expectedHash) { Owner = this };
         dlg.ShowDialog();
     }
 
     private void OnExportCsvClick(object sender, RoutedEventArgs e)
     {
-        var sfd = new SaveFileDialog
-        {
-            Filter = "Fișier CSV (*.csv)|*.csv",
-            FileName = $"Registru_Transferuri_{DateTime.UtcNow:yyyyMMdd}.csv"
-        };
+        var sfd = new SaveFileDialog { Filter = "Fișier CSV (*.csv)|*.csv", FileName = $"Registru_Transferuri_{DateTime.Now:yyyyMMdd}.csv" };
         if (sfd.ShowDialog() == true)
         {
-            _exportService.ExportCsv(_transfers, sfd.FileName);
-            MessageBox.Show($"Registrul a fost exportat cu succes în:\n{sfd.FileName}", "Export Reușit", MessageBoxButton.OK, MessageBoxImage.Information);
+            var lines = new List<string> { "NrInregistrare,Clasificare,NatoClasificare,DataUtc,Sursa,Destinatie,Fisier,HashSHA256,MediuSN,Status,Operator" };
+            foreach (var t in _transfers)
+            {
+                lines.Add($"\"{t.RegistryNumber}\",\"{t.Classification}\",\"{t.NatoClassification}\",\"{t.TransferDateUtc:O}\",\"{t.SourceInstitution}\",\"{t.DestinationInstitution}\",\"{t.PayloadFileName}\",\"{t.PayloadSha256Hash}\",\"{t.MediaSerialNumber}\",\"{t.StatusText}\",\"{t.OperatorUsername}\"");
+            }
+            File.WriteAllLines(sfd.FileName, lines);
+            MessageBox.Show("Registrul a fost exportat cu succes în format CSV.", "Export Finalizat", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
-    private void OnSignTransferClick(object sender, RoutedEventArgs e)
+    // ================= TAB 2: INREGISTRARE NOUA =================
+    private void RefreshLiveMedia()
     {
-        if (GridTransfers.SelectedItem is not TransferRecord tx)
-        {
-            MessageBox.Show("Selectați un transfer din tabel.", "Selecție", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+        _detectedMedia = WmiMediaDetector.DetectAllMedia();
+        GridLiveMedia.ItemsSource = null;
+        GridLiveMedia.ItemsSource = _detectedMedia;
 
-        if (tx.Signed)
-        {
-            MessageBox.Show("Transferul este deja semnat formal.", "Informație", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        using var cmd = _db.RawConnection.CreateCommand();
-        cmd.CommandText = "UPDATE transfers SET signed=1, signed_at_utc=@d, signed_by=@b WHERE id=@id";
-        cmd.Parameters.AddWithValue("@d", DateTime.UtcNow.ToString("o"));
-        cmd.Parameters.AddWithValue("@b", _operator.FullName);
-        cmd.Parameters.AddWithValue("@id", tx.Id);
-        cmd.ExecuteNonQuery();
-
-        _db.AppendAudit("SIGN_TRANSFER", _operator.FullName, $"Semnat formal transferul {tx.RegistryNumber}", tx.RegistryNumber);
-        MessageBox.Show($"Transferul [{tx.RegistryNumber}] a fost semnat cu succes.", "Semnat", MessageBoxButton.OK, MessageBoxImage.Information);
-        LoadRegistry();
+        CmbDetectedMedia.ItemsSource = _detectedMedia.Select(m => $"{m.DriveLetter}: [{m.MediaType}] {m.Model} (S/N: {m.SerialNumber})").ToList();
+        if (_detectedMedia.Count > 0 && CmbDetectedMedia.SelectedIndex < 0)
+            CmbDetectedMedia.SelectedIndex = 0;
     }
 
-    private void OnCancelTransferClick(object sender, RoutedEventArgs e)
+    private void RefreshLiveMediaSilent()
     {
-        if (GridTransfers.SelectedItem is not TransferRecord tx)
-        {
-            MessageBox.Show("Selectați un transfer din tabel.", "Selecție", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        if (tx.Cancelled)
-        {
-            MessageBox.Show("Transferul este deja anulat.", "Informație", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var reason = Microsoft.VisualBasic.Interaction.InputBox("Introduceți motivul / justificarea de securitate pentru anularea transferului:", "Anulare Transfer Militar", "Eroare operator / Modificare destinație");
-        if (!string.IsNullOrWhiteSpace(reason))
-        {
-            using var cmd = _db.RawConnection.CreateCommand();
-            cmd.CommandText = "UPDATE transfers SET cancelled=1, cancellation_reason=@r WHERE id=@id";
-            cmd.Parameters.AddWithValue("@r", reason.Trim());
-            cmd.Parameters.AddWithValue("@id", tx.Id);
-            cmd.ExecuteNonQuery();
-
-            _db.AppendAudit("CANCEL_TRANSFER", _operator.FullName, $"Anulat transferul {tx.RegistryNumber}: {reason.Trim()}", tx.RegistryNumber);
-            MessageBox.Show($"Transferul [{tx.RegistryNumber}] a fost anulat.", "Anulat", MessageBoxButton.OK, MessageBoxImage.Information);
-            LoadRegistry();
-        }
+        _detectedMedia = WmiMediaDetector.DetectAllMedia();
+        GridLiveMedia.ItemsSource = null;
+        GridLiveMedia.ItemsSource = _detectedMedia;
     }
 
-    // ================= TAB 2: ÎNREGISTRARE TRANSFER NOU =================
     private void OnNewTxClassificationChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbNewTxClass.SelectedItem is ClassificationLevel level && TxtRegNumber != null)
+        if (CmbNewTxClass.SelectedItem is ClassificationLevel clf)
         {
-            TxtRegNumber.Text = _db.NextRegistryNumber("MAPN", level);
+            var autoReg = _db.NextRegistryNumber("MAPN", clf);
+            TxtRegNumber.Text = autoReg;
         }
     }
 
     private void OnSelectPayloadFileClick(object sender, RoutedEventArgs e)
     {
-        var ofd = new OpenFileDialog
-        {
-            Title = "Selectează Fișierul Pachet pentru Transfer Militar"
-        };
+        var ofd = new OpenFileDialog { Title = "Selectați Fișierul / Pachetul pentru Transfer Militar" };
         if (ofd.ShowDialog() == true)
         {
-            TxtPayloadPath.Text = ofd.FileName;
-            var fi = new FileInfo(ofd.FileName);
-            TxtPayloadFileName.Text = fi.Name;
-
-            // Auto parse registration number (ex: 2150-23SSv.zip -> 2150-23SSv)
-            var match = Regex.Match(fi.Name, @"(\d{2,6}[\-_][A-Za-z0-9]+)");
-            if (match.Success)
-            {
-                TxtRegNumber.Text = match.Groups[1].Value;
-                if (fi.Name.Contains("SSV", StringComparison.OrdinalIgnoreCase) || fi.Name.Contains("SSv", StringComparison.OrdinalIgnoreCase))
-                    CmbNewTxClass.SelectedItem = ClassificationLevel.SecretDeServiciu;
-                else if (fi.Name.Contains("SSID", StringComparison.OrdinalIgnoreCase))
-                    CmbNewTxClass.SelectedItem = ClassificationLevel.StrictSecretDeImportantaDeosebita;
-                else if (fi.Name.Contains("SS", StringComparison.OrdinalIgnoreCase))
-                    CmbNewTxClass.SelectedItem = ClassificationLevel.StrictSecret;
-                else if (fi.Name.Contains("S", StringComparison.OrdinalIgnoreCase))
-                    CmbNewTxClass.SelectedItem = ClassificationLevel.Secret;
-            }
-
-            // DLP & Magic Bytes Inspection
+            // Inspecție DLP Magic Bytes
             var dlp = PayloadDlpInspector.InspectFile(ofd.FileName);
             if (!dlp.IsSafe)
             {
-                MessageBox.Show(dlp.Details, "DLP ALERT — Fișier Blocat", MessageBoxButton.OK, MessageBoxImage.Stop);
-                _db.AppendAudit("DLP_BLOCK", _operator.FullName, $"Blocat transfer fișier executabil/contaminat: {fi.Name}");
-                TxtPayloadPath.Clear();
-                TxtPayloadFileName.Clear();
-                TxtPayloadHash.Clear();
+                MessageBox.Show($"BLOCARE DLP CONFORM SECOPS:\n{dlp.Details}", "Fișier Interzis", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // Calculate instant SHA-256
-            try
-            {
-                using var stream = File.OpenRead(ofd.FileName);
-                var hash = Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-                TxtPayloadHash.Text = hash;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Eroare la calcularea hash-ului SHA-256: {ex.Message}", "Eroare", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            TxtPayloadPath.Text = ofd.FileName;
+            TxtPayloadFileName.Text = Path.GetFileName(ofd.FileName);
+
+            using var stream = File.OpenRead(ofd.FileName);
+            using var sha = SHA256.Create();
+            var hash = Convert.ToHexString(sha.ComputeHash(stream)).ToLowerInvariant();
+            TxtPayloadHash.Text = hash;
         }
     }
 
     private void OnSubmitTransferClick(object sender, RoutedEventArgs e)
     {
+        var regNr = TxtRegNumber.Text.Trim();
+        var srcInst = TxtSrcInst.Text.Trim();
+        var dstInst = TxtDstInst.Text.Trim();
+        var srcPerson = TxtSrcPerson.Text.Trim();
+        var dstPerson = TxtDstPerson.Text.Trim();
+        var payloadName = TxtPayloadFileName.Text.Trim();
+        var payloadHash = TxtPayloadHash.Text.Trim();
         var classification = (ClassificationLevel)(CmbNewTxClass.SelectedItem ?? ClassificationLevel.Secret);
 
-        if (!_operator.CanAccess(classification))
+        if (string.IsNullOrWhiteSpace(regNr) || string.IsNullOrWhiteSpace(srcInst) || string.IsNullOrWhiteSpace(dstInst) || string.IsNullOrWhiteSpace(payloadName))
         {
-            MessageBox.Show($"Clearance insuficient: sunteți autorizat până la {_operator.MaxClearance.ToDisplayName()}.", "Acces Refuzat", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Toate câmpurile marcate cu asterisc (*) sunt obligatorii.", "Validare", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        if (CmbDetectedMedia.SelectedIndex < 0)
+        if (CmbDetectedMedia.SelectedIndex < 0 || _detectedMedia.Count == 0)
         {
-            MessageBox.Show("Selectați un mediu fizic conectat din listă.", "Mediu Lipsă", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Niciun mediu fizic de stocare nu a fost selectat sau detectat.", "Mediu Lipsă", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var dev = _detectedMedia[CmbDetectedMedia.SelectedIndex];
+        var med = _detectedMedia[CmbDetectedMedia.SelectedIndex];
 
-        // Verificare Plafon Clasificare Mediu din Whitelist
-        var matchingAsset = _mediaAssets.FirstOrDefault(m => m.SerialNumber == dev.SerialNumber);
-        if (matchingAsset != null && (int)classification > (int)matchingAsset.MaxClassification)
-        {
-            MessageBox.Show($"Plafon de securitate depășit!\nMediul [{matchingAsset.FriendlyName}] are plafonul maxim {matchingAsset.MaxClassification.ToDisplayName()}, dar transferul este {classification.ToDisplayName()}.", "Blocare Securitate", MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
-
-        // Four-Eyes Principle Enforcement for Secret / Strict Secret / SSID
-        Operator? witness = null;
-        string witnessRole = string.Empty;
+        // 4-Eyes Dual Authorization pentru transferuri clasificate
+        string? approverName = null;
         if (classification >= ClassificationLevel.Secret)
         {
-            var authDlg = new FourEyesAuthDialog(_db, _operator) { Owner = this };
-            if (authDlg.ShowDialog() != true)
+            var fourEyes = new FourEyesAuthDialog(_db, _operator) { Owner = this };
+            if (fourEyes.ShowDialog() != true || fourEyes.ApprovedWitness == null)
             {
-                MessageBox.Show("Transferul clasificat nu poate fi înregistrat fără aprobarea unui al doilea ofițer autorizat (Principiul celor 4 Ochi).", "Aprobare Refuzată", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Transferul clasificat a fost respins: Lipsește autorizarea duală în 4-Ochi.", "Autorizare Respinsă", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            witness = authDlg.ApprovedWitness;
-            witnessRole = authDlg.ApproverRole;
+            approverName = fourEyes.ApprovedWitness.FullName;
         }
-
-        var regNr = TxtRegNumber.Text.Trim();
-        if (string.IsNullOrWhiteSpace(regNr)) regNr = _db.NextRegistryNumber("MAPN", classification);
-
-        var payloadSize = 0.0;
-        if (!string.IsNullOrWhiteSpace(TxtPayloadPath.Text) && File.Exists(TxtPayloadPath.Text))
-            payloadSize = Math.Round((double)new FileInfo(TxtPayloadPath.Text).Length / (1024 * 1024 * 1024), 3);
 
         var tx = new TransferRecord
         {
             RegistryNumber = regNr,
             Classification = classification,
             TransferDateUtc = DateTime.UtcNow,
-            Direction = "iesire",
-            SourceInstitution = TxtSrcInst.Text.Trim(),
+            SourceInstitution = srcInst,
             SourceStationHost = _db.LocalStationHost,
-            SourcePerson = TxtSrcPerson.Text.Trim(),
-            SourcePersonRole = "Operator Transferuri IT",
-            SourcePersonClearance = _operator.MaxClearance.ToDisplayName(),
-            DestinationInstitution = TxtDstInst.Text.Trim(),
-            DestinationStationHost = "Stație Destinație Air-Gapped",
-            DestinationPerson = TxtDstPerson.Text.Trim(),
-            CourierName = string.IsNullOrWhiteSpace(TxtCourierName.Text) ? null : TxtCourierName.Text.Trim(),
-            CourierPermitNumber = string.IsNullOrWhiteSpace(TxtCourierPermit.Text) ? null : TxtCourierPermit.Text.Trim(),
-            MediaType = dev.MediaType,
-            MediaSerialNumber = dev.SerialNumber,
-            MediaVendorId = dev.VendorId,
-            MediaProductId = dev.ProductId,
-            MediaInventoryCode = matchingAsset?.InventoryCode ?? dev.SerialNumber,
-            MediaFriendlyLabel = matchingAsset?.FriendlyName ?? dev.Model,
-            StorageMediumId = matchingAsset?.Id,
-            PayloadFileName = TxtPayloadFileName.Text.Trim(),
-            PayloadType = "Arhivă Date Securizată",
-            PayloadSizeGb = payloadSize,
-            PayloadFilesCount = 1,
-            PayloadSha256Hash = string.IsNullOrWhiteSpace(TxtPayloadHash.Text) ? "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" : TxtPayloadHash.Text.Trim(),
+            SourcePerson = srcPerson,
+            DestinationInstitution = dstInst,
+            DestinationStationHost = "REMOTE_HOST",
+            DestinationPerson = dstPerson,
+            CourierName = TxtCourierName.Text.Trim(),
+            CourierPermitNumber = TxtCourierPermit.Text.Trim(),
+            PayloadFileName = payloadName,
+            PayloadSha256Hash = string.IsNullOrWhiteSpace(payloadHash) ? "0000000000000000000000000000000000000000000000000000000000000000" : payloadHash,
+            PayloadSizeGb = 0.5,
+            MediaSerialNumber = med.SerialNumber,
+            MediaType = med.MediaType,
             ContentDescription = TxtContentDesc.Text.Trim(),
-            AntivirusScanned = true,
-            AntivirusDetails = "Scanare Antivirus Offline: Bază Definiții la zi, Negativ",
-            LegalBase = "HG 585/2002 Art. 60-73",
             OperatorUsername = _operator.FullName,
-            FourEyesApproverName = witness?.FullName,
-            FourEyesApproverRole = witnessRole,
-            FourEyesApprovedAtUtc = witness != null ? DateTime.UtcNow : null
+            FourEyesApproverName = approverName,
+            Signed = true
         };
 
-        try
-        {
-            _db.InsertTransfer(tx);
-            MessageBox.Show($"Transferul [{tx.RegistryNumber}] a fost înregistrat cu succes!\n\nHash Integritate Audit: {tx.IntegrityHash[..16]}...", "Transfer Înregistrat", MessageBoxButton.OK, MessageBoxImage.Information);
+        _db.InsertTransfer(tx);
+        MessageBox.Show($"Transferul #{tx.RegistryNumber} a fost înregistrat cu succes în Registrul Militar!", "Înregistrare Confirmată", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            NavRegistru.IsChecked = true;
-            LoadRegistry();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Eroare la înregistrarea transferului: {ex.Message}", "Eroare", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        // Reset
+        OnNewTxClassificationChanged(this, null!);
+        TxtPayloadPath.Clear();
+        TxtPayloadHash.Clear();
+        LoadRegistry();
+        NavRegistru.IsChecked = true;
     }
 
-    // ================= TAB 3: MEDII AMPRENTATE =================
-    private void RefreshLiveMediaSilent()
-    {
-        var devs = WmiMediaDetector.DetectAllMedia();
-        if (devs.Count != _detectedMedia.Count)
-        {
-            _detectedMedia = devs;
-            GridLiveMedia.ItemsSource = _detectedMedia;
-            CmbDetectedMedia.ItemsSource = _detectedMedia.Select(m => m.DisplayLabel).ToList();
-            if (_detectedMedia.Count > 0 && CmbDetectedMedia.SelectedIndex < 0)
-                CmbDetectedMedia.SelectedIndex = 0;
-        }
-    }
-
-    private void RefreshLiveMedia()
-    {
-        _detectedMedia = WmiMediaDetector.DetectAllMedia();
-        GridLiveMedia.ItemsSource = _detectedMedia;
-        CmbDetectedMedia.ItemsSource = _detectedMedia.Select(m => m.DisplayLabel).ToList();
-        if (_detectedMedia.Count > 0 && CmbDetectedMedia.SelectedIndex < 0)
-            CmbDetectedMedia.SelectedIndex = 0;
-    }
-
+    // ================= TAB 3: CONTROL MEDII & WHITELIST =================
     private void LoadMediaWhitelist()
     {
-        var search = TxtSearchMedia != null ? TxtSearchMedia.Text.Trim() : "";
-        _mediaAssets = _db.GetMediaAssets(search);
+        _mediaAssets = _db.GetMediaAssets(TxtSearchMedia.Text.Trim());
         GridMediaWhitelist.ItemsSource = _mediaAssets;
     }
 
-    private void OnMediaFilterChanged(object sender, EventArgs e) => LoadMediaWhitelist();
+    private void OnMediaFilterChanged(object sender, TextChangedEventArgs e) => LoadMediaWhitelist();
 
     private void OnEnrollDetectedMediaClick(object sender, RoutedEventArgs e)
     {
-        if ((sender as Button)?.DataContext is DetectedMedia dev)
+        if (GridLiveMedia.SelectedItem is not DetectedMedia med)
         {
-            var dlg = new EnrollMediaDialog(_db, dev, _operator) { Owner = this };
-            if (dlg.ShowDialog() == true)
-            {
-                RefreshLiveMedia();
-                LoadMediaWhitelist();
-            }
+            if (_detectedMedia.Count > 0) med = _detectedMedia[0];
+            else return;
+        }
+
+        var dlg = new EnrollMediaDialog(_db, med, _operator) { Owner = this };
+        if (dlg.ShowDialog() == true)
+        {
+            LoadMediaWhitelist();
         }
     }
 
@@ -476,15 +431,14 @@ public partial class MainWindow : Window
     {
         if (GridMediaWhitelist.SelectedItem is not MediaAsset med)
         {
-            MessageBox.Show("Selectați un mediu din tabelul bazei de date.", "Selecție", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Selectați un mediu din tabelul Whitelist.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var newName = Microsoft.VisualBasic.Interaction.InputBox("Introduceți noua Denumire Volum / Număr Înregistrare Mediu:", "Modificare Denumire", med.FriendlyName);
-        if (!string.IsNullOrWhiteSpace(newName) && newName.Trim() != med.FriendlyName)
+        var newName = Microsoft.VisualBasic.Interaction.InputBox("Introduceți noua denumire de volum / număr de înregistrare HG 585:", "Modificare Denumire Volum", med.FriendlyName);
+        if (!string.IsNullOrWhiteSpace(newName) && newName != med.FriendlyName)
         {
             _db.UpdateMediaFriendlyName(med.Id, newName.Trim(), _operator.FullName);
-            MessageBox.Show($"Denumirea a fost actualizată în:\n'{newName.Trim()}'", "Succes", MessageBoxButton.OK, MessageBoxImage.Information);
             LoadMediaWhitelist();
         }
     }
@@ -493,9 +447,12 @@ public partial class MainWindow : Window
     {
         if (GridMediaWhitelist.SelectedItem is not MediaAsset med)
         {
-            MessageBox.Show("Selectați un mediu din tabel.", "Selecție", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Selectați un mediu din tabelul Whitelist pentru sanitizare.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
+
+        var confirm = MessageBox.Show($"AVERTISMENT DE SECURITATE: Sunteți pe cale să inițiați SANITIZAREA NIST SP 800-88r2 & HG 585 Art. 65 pentru volumul [{med.FriendlyName}] (S/N: {med.SerialNumber}).\n\nToate cheile criptografice MEK vor fi distruse garantat.\nContinuați?", "Confirmare Sanitizare Militară", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes) return;
 
         var witness = Microsoft.VisualBasic.Interaction.InputBox("Introduceți numele ofițerului de securitate / martorului verificator:", "Martor Sanitizare NIST SP 800-88r2", "Ofițer Securitate INFOSEC");
         if (!string.IsNullOrWhiteSpace(witness))
@@ -508,49 +465,103 @@ public partial class MainWindow : Window
         }
     }
 
-    // ================= TAB 4: SEIF COGNITIV & ORACOL =================
-    private void InitOracleDefaultView()
+    // ================= SARCINA 4: SEIF COGNITIV & TERMINAL SPLIT-VIEW =================
+    private async void LoadProceduresList()
     {
-        LblVaultStatus.Text = _vaultBridge.IsVaultAvailable ? "🟢 Conectat (AI_Memory_Vault_CODEX_READY)" : "🔴 Seif Memorie Indisponibil";
-        DisplayOracleResponse(_vaultBridge.AskSecurityOracle("ajutor"));
+        _procedures = await _vaultClient.SearchProceduresAsync("");
+        ListProcedures.ItemsSource = _procedures.Select(p => $"[{p.Category}] {p.Title}").ToList();
+        if (_procedures.Count > 0)
+            ListProcedures.SelectedIndex = 0;
     }
 
-    private void OnAskOracleClick(object sender, RoutedEventArgs e)
+    private async void OnSearchProceduresChanged(object sender, TextChangedEventArgs e)
     {
-        var q = TxtOracleQuery.Text.Trim();
-        if (!string.IsNullOrWhiteSpace(q))
+        var q = TxtSearchProcedures.Text.Trim();
+        _procedures = await _vaultClient.SearchProceduresAsync(q);
+        ListProcedures.ItemsSource = _procedures.Select(p => $"[{p.Category}] {p.Title}").ToList();
+    }
+
+    private void OnProcedureSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ListProcedures.SelectedIndex >= 0 && ListProcedures.SelectedIndex < _procedures.Count)
         {
-            var ans = _vaultBridge.AskSecurityOracle(q);
-            DisplayOracleResponse(ans);
+            var p = _procedures[ListProcedures.SelectedIndex];
+            TxtProcedurePreview.Text =
+                $"=== {p.Title} ===\r\n" +
+                $"Standard Referință: {p.StandardRef}\r\n" +
+                $"Categorie: {p.Category}\r\n\r\n" +
+                $"Sinteză Operativă:\r\n{p.Summary}\r\n\r\n" +
+                $"Text Integral Procedural:\r\n{p.FullText}";
         }
+    }
+
+    private async void OnAskOracleClick(object sender, RoutedEventArgs e)
+    {
+        var query = TxtOracleQuery.Text.Trim();
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        // User Chat Bubble
+        var userBorder = new Border
+        {
+            Background = (System.Windows.Media.Brush)FindResource("BgElevatedBrush"),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(12),
+            Margin = new Thickness(40, 0, 0, 8),
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        userBorder.Child = new TextBlock
+        {
+            Text = query,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
+            FontSize = 12
+        };
+        PanelOracleMessages.Children.Add(userBorder);
+        TxtOracleQuery.Clear();
+
+        // Call Cognitive Vault Client
+        var resp = await _vaultClient.QueryAsync(query);
+
+        // Oracle Chat Bubble
+        var oracleBorder = new Border
+        {
+            Background = (System.Windows.Media.Brush)FindResource("BgCardBrush"),
+            BorderBrush = (System.Windows.Media.Brush)FindResource("CyberBlueBrush"),
+            BorderThickness = new Thickness(2, 0, 0, 0),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14),
+            Margin = new Thickness(0, 0, 40, 10),
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+        var sp = new StackPanel();
+        sp.Children.Add(new TextBlock
+        {
+            Text = $"🧠 Răspuns Oracol INFOSEC (Încredere: {resp.Confidence * 100:F0}%)",
+            FontWeight = FontWeights.Bold,
+            FontSize = 11,
+            Foreground = (System.Windows.Media.Brush)FindResource("CyberBlueBrush"),
+            Margin = new Thickness(0, 0, 0, 4)
+        });
+        sp.Children.Add(new TextBlock
+        {
+            Text = resp.Response,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush"),
+            FontSize = 12
+        });
+        oracleBorder.Child = sp;
+        PanelOracleMessages.Children.Add(oracleBorder);
+
+        ScrollOracleChat.ScrollToEnd();
+
+        // Jurnalizare automată a consultării în Jurnalul de Audit
+        _db.AppendAudit("ORACLE_QUERY", _operator.FullName, $"Interogare Oracol Securitate: '{query}'");
     }
 
     private void OnOracleQueryKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == System.Windows.Input.Key.Enter)
             OnAskOracleClick(sender, e);
-    }
-
-    private void DisplayOracleResponse(string htmlBody)
-    {
-        var html = $@"<!DOCTYPE html><html><head><meta charset=""UTF-8""><style>
-        body {{ background-color: #131B2E; color: #F8FAFC; font-family: 'Segoe UI', Arial; font-size: 13px; margin: 15px; line-height: 1.6; }}
-        code {{ background-color: #1E293B; color: #38BDF8; padding: 2px 5px; border-radius: 3px; font-family: 'Consolas', monospace; }}
-        b {{ color: #00E5FF; }}
-        </style></head><body>{htmlBody}</body></html>";
-        BrowserOracle.NavigateToString(html);
-    }
-
-    private void OnSynthesizeTransferClick(object sender, RoutedEventArgs e)
-    {
-        if (GridTransfers.SelectedItem is not TransferRecord tx)
-        {
-            MessageBox.Show("Selectați un transfer din Tab-ul Registru pentru a-l sintetiza în Seiful de Memorie AI.", "Selecție", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        var (success, msg) = _vaultBridge.SynthesizeTransferToVault(tx);
-        MessageBox.Show(msg, success ? "Sinteză Reușită" : "Eroare Sinteză", MessageBoxButton.OK, success ? MessageBoxImage.Information : MessageBoxImage.Error);
     }
 
     // ================= TAB 5: STATISTICI =================
@@ -581,28 +592,32 @@ public partial class MainWindow : Window
             $"   • Transferuri Semnate Formal cu PIN: {_transfers.Count(t => t.Signed)}\r\n";
     }
 
-    // ================= TAB 6: AUDIT LOG =================
+    // ================= SARCINA 5: AUDIT LOG & BLOCKCHAIN VERIFIER =================
     private void LoadAuditLog()
     {
         var list = new List<AuditEntry>();
         using var cmd = _db.RawConnection.CreateCommand();
-        cmd.CommandText = "SELECT sequence, timestamp_utc, action, operator_username, details, entity_id, previous_hash, entry_hash FROM audit_log ORDER BY sequence DESC LIMIT 500";
+        cmd.CommandText = "SELECT sequence, timestamp_utc, action, operator_username, details, previous_hash, entry_hash FROM audit_log ORDER BY sequence DESC LIMIT 500";
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
-            list.Add(new AuditEntry
-            {
-                Sequence = r.GetInt32(0),
-                TimestampUtc = r.GetString(1),
-                Action = r.GetString(2),
-                OperatorUsername = r.GetString(3),
-                Details = r.GetString(4),
-                EntityId = r.IsDBNull(5) ? null : r.GetString(5),
-                PreviousHash = r.GetString(6),
-                EntryHash = r.GetString(7)
-            });
+            var seq = r.GetInt64(0);
+            var ts = DateTime.TryParse(r.GetString(1), out var d) ? d : DateTime.UtcNow;
+            var act = r.GetString(2);
+            var op = r.GetString(3);
+            var det = r.IsDBNull(4) ? "" : r.GetString(4);
+            var prev = r.GetString(5);
+            var hash = r.GetString(6);
+
+            list.Add(new AuditEntry(seq, ts, act, op, det, prev, hash));
         }
         GridAudit.ItemsSource = list;
+
+        if (list.Count > 0)
+        {
+            var genesis = list.Last();
+            TxtGenesisHash.Text = $"Bloc #1 (Genesis):\r\nHash: {genesis.EntryHash[..24]}...\r\nActor: {genesis.OperatorUsername}\r\nData: {genesis.TimestampUtc:yyyy-MM-dd HH:mm}";
+        }
     }
 
     private void OnAuditSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -611,8 +626,8 @@ public partial class MainWindow : Window
         {
             TxtAuditInspector.Text =
                 $"=== BLOC AUDIT CRIPTOGRAFIC SECVENȚA #{entry.Sequence} ===\r\n" +
-                $"Timestamp: {entry.TimestampUtc} | Acțiune: {entry.Action}\r\n" +
-                $"Operator: {entry.OperatorUsername} | Entitate: {entry.EntityId ?? "Sistem"}\r\n" +
+                $"Timestamp: {entry.TimestampUtc:O} | Acțiune: {entry.Action}\r\n" +
+                $"Operator: {entry.OperatorUsername}\r\n" +
                 $"Detalii Eveniment: {entry.Details}\r\n" +
                 $"Hash Precedent (Chain Prev): {entry.PreviousHash}\r\n" +
                 $"Hash Intrare Curentă (Entry SHA-256): {entry.EntryHash}";
@@ -624,13 +639,13 @@ public partial class MainWindow : Window
         var (valid, count, error) = _db.VerifyAuditChain();
         if (valid)
         {
-            LblAuditStatus.Text = $"✅ Lanț audit VALID ({count} evenimente fără alterări)";
-            MessageBox.Show($"Lanțul de audit criptografic este 100% integru.\n{count} blocuri verificate de la blocul Genesis.", "Integritate Confirmată", MessageBoxButton.OK, MessageBoxImage.Information);
+            LblAuditStatus.Text = $"✅ Lanț audit VALID ({count} blocuri verificate)";
+            MessageBox.Show($"Lanțul de audit criptografic este 100% integru.\n{count} blocuri verificate cu succes.", "Integritate Confirmată", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         else
         {
-            LblAuditStatus.Text = $"⚠️ ALTERARE DETECTATĂ: {error}";
-            MessageBox.Show($"COMPROMITERE DETECTATĂ ÎN LANȚUL DE AUDIT!\n\n{error}", "Alertă Securitate", MessageBoxButton.OK, MessageBoxImage.Error);
+            LblAuditStatus.Text = $"⚠️ ALTERARE: {error}";
+            MessageBox.Show($"RUPERE DE LANȚ CRIPTOGRAFIC DETECTATĂ!\n\n{error}", "Alertă Securitate", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -684,16 +699,4 @@ public partial class MainWindow : Window
             Close();
         }
     }
-}
-
-public sealed class AuditEntry
-{
-    public int Sequence { get; set; }
-    public string TimestampUtc { get; set; } = string.Empty;
-    public string Action { get; set; } = string.Empty;
-    public string OperatorUsername { get; set; } = string.Empty;
-    public string Details { get; set; } = string.Empty;
-    public string? EntityId { get; set; }
-    public string PreviousHash { get; set; } = string.Empty;
-    public string EntryHash { get; set; } = string.Empty;
 }

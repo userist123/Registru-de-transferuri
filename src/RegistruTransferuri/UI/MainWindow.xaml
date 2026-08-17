@@ -5,45 +5,47 @@
         Width="1480" Height="920"
         MinWidth="1240" MinHeight="780"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Brush.Bg.Deep}"
-        Foreground="{StaticResource Brush.Text.Primary}">
+        Background="{StaticResource BgDeepBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" />
+            <ColumnDefinition x:Name="ColSidebar" Width="280" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ================= LEFT SIDEBAR (OBSIDIAN COMMAND) ================= -->
-        <Border Grid.Column="0" Background="{StaticResource Brush.Bg.Base}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="0,0,1,0">
-            <Grid Margin="18">
+        <!-- ================= SARCINA 3: LEFT SIDEBAR (COLLAPSIBLE 280px <-> 68px) ================= -->
+        <Border Grid.Column="0" Background="{StaticResource BgBaseBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Brand / Military Crest -->
-                <StackPanel Grid.Row="0" Margin="0,4,0,24">
+                <!-- Brand / Military Crest + Collapse Toggle -->
+                <StackPanel Grid.Row="0" Margin="0,4,0,20">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Background="{StaticResource Brush.Bg.Elevated}" BorderBrush="{StaticResource Brush.Accent.Violet}" BorderThickness="1.5" CornerRadius="10" Width="44" Height="44" Margin="0,0,12,0">
-                            <TextBlock Text="🛡️" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Grid.Column="0" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="1.5" CornerRadius="10" Width="40" Height="40" Margin="0,0,10,0">
+                            <TextBlock Text="🛡️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="ROMÂNIA • MApN" FontSize="10" FontWeight="ExtraBold" Foreground="{StaticResource Brush.Accent.CyberBlue}" />
-                            <TextBlock Text="REGISTRU MILITAR" FontSize="15" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}" />
-                            <TextBlock Text="Transferuri &amp; Device Control" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" />
+                        <StackPanel x:Name="PanelBrandText" Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="ROMÂNIA • MApN" FontSize="10" FontWeight="ExtraBold" Foreground="{StaticResource CyberBlueBrush}" />
+                            <TextBlock Text="REGISTRU MILITAR" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="Transferuri &amp; Device Control" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
                         </StackPanel>
+                        <Button x:Name="BtnToggleSidebar" Grid.Column="2" Content="◀" Width="26" Height="26" Padding="0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnToggleSidebarClick" ToolTip="Comută afișarea completă/compactă a meniului" />
                     </Grid>
-                    <Border Background="{StaticResource Brush.Border.Default}" Height="1" Margin="0,16,0,0" />
+                    <Border Background="{StaticResource BorderDefaultBrush}" Height="1" Margin="0,14,0,0" />
                 </StackPanel>
 
                 <!-- Navigation List -->
                 <StackPanel Grid.Row="1">
-                    <TextBlock Text="MODULE OPERATIVE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Muted}" Margin="12,0,0,8" />
+                    <TextBlock x:Name="LblNavHeader" Text="MODULE OPERATIVE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="12,0,0,8" />
                     <RadioButton x:Name="NavRegistru" Content="📋  Registru Transferuri" Style="{StaticResource SidebarNavButtonStyle}" IsChecked="True" Checked="OnNavChanged" />
                     <RadioButton x:Name="NavInregistrare" Content="➕  Înregistrare Transfer" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
                     <RadioButton x:Name="NavMedii" Content="🛡️  Control Medii (PnP)" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
@@ -54,18 +56,18 @@
                 </StackPanel>
 
                 <!-- Station Telemetry & Air-Gapped Footer -->
-                <Border Grid.Row="2" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="8" Padding="12">
+                <Border Grid.Row="2" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
                     <StackPanel>
-                        <Grid Margin="0,0,0,6">
+                        <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource Brush.Accent.Emerald}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Grid.Column="1" Text="AIR-GAPPED PROTOCOL" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Emerald}" VerticalAlignment="Center" />
+                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource EmeraldSecurityBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <TextBlock Grid.Column="1" Text="AIR-GAPPED PROTOCOL" FontSize="10" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" VerticalAlignment="Center" />
                         </Grid>
-                        <TextBlock x:Name="LblHostInfo" Text="Stație: HOST-LOCAL" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" />
-                        <TextBlock Text="Criptare DB: SQLite WAL + Argon2id" FontSize="10" Foreground="{StaticResource Brush.Text.Muted}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="LblHostInfo" Text="Stație: HOST-LOCAL" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Text="Criptare DB: SQLite WAL + Argon2id" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -79,7 +81,7 @@
             </Grid.RowDefinitions>
 
             <!-- Top Tactical Header Bar -->
-            <Border Grid.Row="0" Background="{StaticResource Brush.Bg.Base}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="0,0,0,1" Padding="24,0">
+            <Border Grid.Row="0" Background="{StaticResource BgBaseBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="24,0">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -87,19 +89,17 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Active View Title & Context -->
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock x:Name="LblViewTitle" Text="📋 Evidența Transferurilor de Date Clasificate (HG 585 / NATO AC/35)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}" />
-                        <TextBlock Text="Platformă Securizată pentru Izolare Logică &amp; Trasabilitate Criptografică" FontSize="11" Foreground="{StaticResource Brush.Text.Muted}" Margin="0,2,0,0" />
+                        <TextBlock x:Name="LblViewTitle" Text="📋 Evidența Transferurilor de Date Clasificate (HG 585 / NATO AC/35)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="Platformă Securizată pentru Izolare Logică &amp; Trasabilitate Criptografică" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
                     </StackPanel>
 
-                    <!-- Operator Clearance Badge & Logout -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,12,0">
+                        <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="👤" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <TextBlock x:Name="LblOperatorName" Text="Operator" FontSize="12" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <Border Background="#3B2677" BorderBrush="{StaticResource Brush.Accent.Violet}" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                                <TextBlock x:Name="LblOperatorName" Text="Operator" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <Border Background="#3B2677" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2">
                                     <TextBlock x:Name="LblOperatorClearance" Text="SECRET" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
                                 </Border>
                             </StackPanel>
@@ -120,8 +120,8 @@
                         <RowDefinition Height="190" />
                     </Grid.RowDefinitions>
 
-                    <!-- Top Filter & Action Bar -->
-                    <Border Grid.Row="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                    <!-- Filter Bar -->
+                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="320" />
@@ -156,7 +156,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- Bottom Inspector Panel -->
+                    <!-- Inspector Panel -->
                     <GroupBox Grid.Row="2" Header="📋 Inspector Detalii Transfer Militar &amp; Integritate SHA-256" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -172,36 +172,73 @@
                     </GroupBox>
                 </Grid>
 
-                <!-- ================= 2. VIEW ÎNREGISTRARE TRANSFER NOU ================= -->
+                <!-- ================= 2. VIEW ÎNREGISTRARE TRANSFER (SARCINA 6: WIZARD MULTI-STEP) ================= -->
                 <Grid x:Name="ViewInregistrare" Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <!-- Header Notice -->
-                            <Border Background="{StaticResource Brush.Bg.Elevated}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
-                                <TextBlock Text="🔒 Datele generate de sistemul de operare despre mediul fizic sunt citite automat și sunt IMUTABILE. Numărul de înregistrare poate fi introdus manual (ex: 2150-23SSv), detectat din fișier sau auto-generat conform HG 585."
-                                           TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource Brush.Text.Cyan}" />
+                            <!-- Wizard Step Progress Indicator -->
+                            <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,14">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Border Background="{StaticResource TacticalVioletBrush}" CornerRadius="12" Width="24" Height="24" Margin="0,0,8,0">
+                                            <TextBlock Text="1" FontWeight="Bold" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="Suport Fizic &amp; Nr." FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="1" Text="➔" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Border Background="{StaticResource TacticalVioletBrush}" CornerRadius="12" Width="24" Height="24" Margin="0,0,8,0">
+                                            <TextBlock Text="2" FontWeight="Bold" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="Flux &amp; Entități" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="3" Text="➔" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Border Background="{StaticResource TacticalVioletBrush}" CornerRadius="12" Width="24" Height="24" Margin="0,0,8,0">
+                                            <TextBlock Text="3" FontWeight="Bold" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="DLP Magic Bytes" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Column="5" Text="➔" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Border Background="{StaticResource TacticalVioletBrush}" CornerRadius="12" Width="24" Height="24" Margin="0,0,8,0">
+                                            <TextBlock Text="4" FontWeight="Bold" FontSize="11" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <TextBlock Text="Semnare 4-Eyes" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Grid>
                             </Border>
 
                             <!-- Secțiunea 0: Număr Înregistrare & Mediu -->
-                            <GroupBox Header="0. Număr Înregistrare &amp; Suport Fizic de Stocare" Style="{StaticResource TacticalGroupBoxStyle}">
+                            <GroupBox Header="[Pasul 1] Număr Înregistrare &amp; Suport Fizic de Stocare" Style="{StaticResource TacticalGroupBoxStyle}">
                                 <Grid Margin="4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Margin="0,0,8,0">
-                                        <TextBlock Text="Număr Înregistrare Transfer (Manual / Parsat / Auto HG 585): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Număr Înregistrare Transfer (Manual / Parsat / Auto HG 585): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtRegNumber" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Text="MAPN-2026-S-0001" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                        <TextBlock Text="Mediu Fizic Conectat Detectat Live (USB / SATA / CD-DVD): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Mediu Fizic Conectat Detectat Live (USB / SATA / CD-DVD): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <ComboBox x:Name="CmbDetectedMedia" Height="36" />
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
 
                             <!-- Secțiunea 1: Entități și Flux -->
-                            <GroupBox Header="1. Flux &amp; Entități (Sursă / Destinație / Curier)" Style="{StaticResource TacticalGroupBoxStyle}">
+                            <GroupBox Header="[Pasul 2] Flux &amp; Entități (Sursă / Destinație / Curier)" Style="{StaticResource TacticalGroupBoxStyle}">
                                 <Grid Margin="4">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
@@ -211,39 +248,39 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,10">
-                                        <TextBlock Text="Unitate Sursă (Expeditor): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Unitate Sursă (Expeditor): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtSrcInst" Text="MApN / Structura Securitate" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,10">
-                                        <TextBlock Text="Unitate Destinație (Destinatar): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Unitate Destinație (Destinatar): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtDstInst" Text="Statul Major al Apărării / Baza 2" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,10">
-                                        <TextBlock Text="Persoană Responsabilă Sursă: *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Persoană Responsabilă Sursă: *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtSrcPerson" Text="Cpt. Ionescu Radu" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,10">
-                                        <TextBlock Text="Persoană Destinatar: *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Persoană Destinatar: *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtDstPerson" Text="Mr. Popa Mihai" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,8,0">
-                                        <TextBlock Text="Curier Militar / Delegat Transport:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Curier Militar / Delegat Transport:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtCourierName" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,0,0,0">
-                                        <TextBlock Text="Permis Transport Curier:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Permis Transport Curier:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtCourierPermit" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
 
-                            <!-- Secțiunea 2: Pachet Date & Clasificare -->
-                            <GroupBox Header="2. Pachet Date, Clasificare &amp; Integritate Criptografică (DLP Magic Bytes)" Style="{StaticResource TacticalGroupBoxStyle}">
+                            <!-- Secțiunea 2: Pachet Date & Inspecție DLP Magic Bytes -->
+                            <GroupBox Header="[Pasul 3] Pachet Date, Inspecție DLP Magic Bytes &amp; Hash SHA-256" Style="{StaticResource TacticalGroupBoxStyle}">
                                 <Grid Margin="4">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
@@ -253,12 +290,12 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,10">
-                                        <TextBlock Text="Nivel Clasificare (HG 585 / NATO / UE): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Nivel Clasificare (HG 585 / NATO / UE): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <ComboBox x:Name="CmbNewTxClass" Height="36" SelectionChanged="OnNewTxClassificationChanged" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,10">
-                                        <TextBlock Text="Selectare Fișier Fizic (Calculare Instantanee Hash SHA-256):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Selectare Fișier Fizic (Calculare Instantanee Hash SHA-256):" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
@@ -269,24 +306,24 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,10">
-                                        <TextBlock Text="Denumire Pachet / Arhivă:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Denumire Pachet / Arhivă:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtPayloadFileName" Text="Pachet_Date_Securizat.zip" Style="{StaticResource TacticalTextBoxStyle}" Height="36" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,10">
-                                        <TextBlock Text="Hash SHA-256 Calculat (Imuabil): 🔒" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Hash SHA-256 Calculat (Imuabil): 🔒" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtPayloadHash" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" Height="36" FontFamily="Consolas, Cascadia Code" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
-                                        <TextBlock Text="Descriere Conținut Pachet &amp; Justificare:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                        <TextBlock Text="Descriere Conținut Pachet &amp; Justificare:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                         <TextBox x:Name="TxtContentDesc" Text="Pachet de actualizări și documente operative conform SecOPs." Style="{StaticResource TacticalTextBoxStyle}" Height="55" TextWrapping="Wrap" AcceptsReturn="True" />
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
 
-                            <!-- Submit Button -->
-                            <Button Content="💾 Înregistrează Transfer în Sistem (cu Verificare 4-Eyes)" Height="46" FontSize="13" Style="{StaticResource TacticalPrimaryButtonStyle}" Margin="0,4,0,16" Click="OnSubmitTransferClick" />
+                            <!-- Submit / 4-Eyes Step -->
+                            <Button Content="💾 [Pasul 4] Înregistrează Transfer în Sistem (cu Verificare 4-Eyes)" Height="46" FontSize="13" Style="{StaticResource TacticalPrimaryButtonStyle}" Margin="0,4,0,16" Click="OnSubmitTransferClick" />
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
@@ -298,7 +335,6 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <!-- Top Card: Live PnP Connected Media -->
                     <GroupBox Grid.Row="0" Header="🔌 Medii Conectate în Timp Real (Live PnP Auto-Detectate: USB, SATA, CD-DVD, SD)" Style="{StaticResource TacticalGroupBoxStyle}">
                         <DataGrid x:Name="GridLiveMedia" Style="{StaticResource TacticalDataGridStyle}">
                             <DataGrid.Columns>
@@ -319,7 +355,6 @@
                         </DataGrid>
                     </GroupBox>
 
-                    <!-- Bottom Card: Media Whitelist -->
                     <GroupBox Grid.Row="1" Header="📋 Baza de Date a Mediilor de Stocare Amprentate (Device Control Whitelist)" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -349,49 +384,72 @@
                     </GroupBox>
                 </Grid>
 
-                <!-- ================= 4. VIEW SEIF COGNITIV & ORACOL INFOSEC ================= -->
+                <!-- ================= 4. VIEW SEIF COGNITIV (SARCINA 4: SPLIT-VIEW TERMINAL & PROCEDURES) ================= -->
                 <Grid x:Name="ViewOracle" Visibility="Collapsed">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="6*" />
+                        <ColumnDefinition Width="4*" />
+                    </Grid.ColumnDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="14" Margin="0,0,0,12">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="🧠 Punte Cognitivă AI Memory Vault:" FontSize="13" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Violet}" />
-                                <TextBlock x:Name="LblVaultStatus" Text=" Conectat (c:\Users\Marius\Documents\Codex\AI_Memory_Vault_CODEX_READY)" FontSize="12" Foreground="{StaticResource Brush.Accent.Emerald}" />
-                            </StackPanel>
-                            <TextBlock Text="Asistent offline de securitate pentru interogarea procedurilor HG 585/2002, NATO AC/35, EUCI 2013/488/UE și NIST SP 800-88r2."
-                                       FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" />
-                        </StackPanel>
-                    </Border>
+                    <!-- Left Panel (60%): Tactical Terminal Chat -->
+                    <GroupBox Grid.Column="0" Header="💬 Terminal Asistent INFOSEC &amp; Consultare Oracol Cognitiv" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
 
-                    <!-- Oracle Output Card -->
-                    <GroupBox Grid.Row="1" Header="📜 Răspuns Oracol Securitate &amp; Sinteză Memorie" Style="{StaticResource TacticalGroupBoxStyle}">
-                        <WebBrowser x:Name="BrowserOracle" />
+                            <ScrollViewer x:Name="ScrollOracleChat" Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                                <StackPanel x:Name="PanelOracleMessages">
+                                    <!-- Default Welcome Bubble -->
+                                    <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource CyberBlueBrush}" BorderThickness="2,0,0,0" CornerRadius="8" Padding="14" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="🧠 Oracol INFOSEC (AI Memory Vault Bridge)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource CyberBlueBrush}" Margin="0,0,0,6" />
+                                            <TextBlock Text="Sistemul de consultare cognitivă este activ în regim strict Air-Gapped. Puteți interoga procedurile HG 585/2002, standardele NATO AC/35-D/1022, normele EUCI și ghidurile de sanitizare NIST SP 800-88r2." TextWrapping="Wrap" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- Input Bar -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtOracleQuery" Style="{StaticResource TacticalTextBoxStyle}" Height="38" Text="Care sunt normele de sanitizare NIST 800-88r2 pentru medii secrete?" KeyDown="OnOracleQueryKeyDown" />
+                                <Button Grid.Column="1" Content="🔍 Întreabă Oracolul" Height="38" Margin="8,0,0,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnAskOracleClick" />
+                            </Grid>
+                        </Grid>
                     </GroupBox>
 
-                    <!-- Oracle Input Bar -->
-                    <Border Grid.Row="2" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,12,0,0">
+                    <!-- Right Panel (40%): Procedural Document Inspector -->
+                    <GroupBox Grid.Column="1" Header="📜 Inspector Documente &amp; Standarde Clasificate" Style="{StaticResource TacticalGroupBoxStyle}">
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="TxtOracleQuery" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Text="Care sunt normele de sanitizare NIST 800-88r2 pentru medii secrete?" KeyDown="OnOracleQueryKeyDown" />
-                            <Button Grid.Column="1" Content="🔍 Întreabă Oracolul" Height="36" Margin="10,0,0,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnAskOracleClick" />
-                            <Button Grid.Column="2" Content="📥 Sintetizează Transfer în Seif (RAW_IMPORTS)" Height="36" Margin="10,0,0,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnSynthesizeTransferClick" />
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="140" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <TextBox x:Name="TxtSearchProcedures" Grid.Row="0" Style="{StaticResource TacticalTextBoxStyle}" Height="34" ToolTip="Caută în procedurile HG 585 / NATO..." Margin="0,0,0,8" TextChanged="OnSearchProceduresChanged" />
+
+                            <ListBox x:Name="ListProcedures" Grid.Row="1" Background="{StaticResource BgDeepBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" SelectionChanged="OnProcedureSelectionChanged" />
+
+                            <Border Grid.Row="2" Background="{StaticResource BgDeepBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,8,0,0">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock x:Name="TxtProcedurePreview" Text="Selectați o procedură din listă pentru vizualizare completă." TextWrapping="Wrap" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" FontFamily="Consolas, Cascadia Code" />
+                                </ScrollViewer>
+                            </Border>
                         </Grid>
-                    </Border>
+                    </GroupBox>
                 </Grid>
 
-                <!-- ================= 5. VIEW STATISTICI ================= -->
+                <!-- ================= 5. VIEW STATISTICI (SARCINA 7: MICRO-GRAFICE) ================= -->
                 <Grid x:Name="ViewStats" Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
+                            <!-- 4 KPI Scorecard Cards with 28px numbers -->
                             <Grid Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -400,35 +458,35 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- KPI 1 -->
-                                <Border Grid.Column="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,8,0">
+                                <Border Grid.Column="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="TOTAL TRANSFERURI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                        <TextBlock x:Name="KpiTotalTransfers" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Violet}" Margin="0,6,0,0" />
+                                        <TextBlock Text="TOTAL TRANSFERURI" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock x:Name="KpiTotalTransfers" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TacticalVioletBrush}" Margin="0,6,0,0" />
+                                        <TextBlock Text="▲ Jurnalizat cu SHA-256" FontSize="10" Foreground="{StaticResource EmeraldSecurityBrush}" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
 
-                                <!-- KPI 2 -->
-                                <Border Grid.Column="1" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="8,0,8,0">
+                                <Border Grid.Column="1" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="8,0,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="SECRET / NATO CONFIDENTIAL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                        <TextBlock x:Name="KpiSecretTransfers" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Amber}" Margin="0,6,0,0" />
+                                        <TextBlock Text="SECRET / NATO CONFIDENTIAL" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock x:Name="KpiSecretTransfers" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AmberWarningBrush}" Margin="0,6,0,0" />
+                                        <TextBlock Text="Autorizare 4-Ochi Aplicată" FontSize="10" Foreground="{StaticResource AmberWarningBrush}" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
 
-                                <!-- KPI 3 -->
-                                <Border Grid.Column="2" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="8,0,8,0">
+                                <Border Grid.Column="2" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="8,0,8,0">
                                     <StackPanel>
-                                        <TextBlock Text="MEDII AMPRENTATE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                        <TextBlock x:Name="KpiEnrolledMedia" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Emerald}" Margin="0,6,0,0" />
+                                        <TextBlock Text="MEDII AMPRENTATE (WHITELIST)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock x:Name="KpiEnrolledMedia" Text="0" FontSize="28" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" Margin="0,6,0,0" />
+                                        <TextBlock Text="Dispozitive Active P16-P18" FontSize="10" Foreground="{StaticResource EmeraldSecurityBrush}" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
 
-                                <!-- KPI 4 -->
-                                <Border Grid.Column="3" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="8,0,0,0">
+                                <Border Grid.Column="3" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="8,0,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="VOLUM TOTAL DATE (GB)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Secondary}" />
-                                        <TextBlock x:Name="KpiVolumeGb" Text="0.0 GB" FontSize="28" FontWeight="Bold" Foreground="{StaticResource Brush.Accent.CyberBlue}" Margin="0,6,0,0" />
+                                        <TextBlock Text="VOLUM TOTAL DATE" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                                        <TextBlock x:Name="KpiVolumeGb" Text="0.0 GB" FontSize="28" FontWeight="Bold" Foreground="{StaticResource CyberBlueBrush}" Margin="0,6,0,0" />
+                                        <TextBlock Text="Trafic Air-Gapped Agregat" FontSize="10" Foreground="{StaticResource CyberBlueBrush}" Margin="0,4,0,0" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
@@ -440,18 +498,18 @@
                     </ScrollViewer>
                 </Grid>
 
-                <!-- ================= 6. VIEW JURNAL AUDIT SHA-256 ================= -->
+                <!-- ================= 6. VIEW JURNAL AUDIT (SARCINA 5: GENESIS & CHAIN VERIFIER) ================= -->
                 <Grid x:Name="ViewAudit" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="160" />
+                        <RowDefinition Height="180" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource Brush.Bg.Card}" BorderBrush="{StaticResource Brush.Border.Default}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="🔗 Verifică Integritatea Lanțului Criptografic SHA-256" Height="36" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnVerifyAuditChainClick" />
-                            <TextBlock x:Name="LblAuditStatus" Text="Lanț audit: Neverificat" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{StaticResource Brush.Accent.Emerald}" />
+                            <TextBlock x:Name="LblAuditStatus" Text="Lanț audit: Neverificat" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="{StaticResource EmeraldSecurityBrush}" />
                         </StackPanel>
                     </Border>
 
@@ -466,8 +524,24 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <GroupBox Grid.Row="2" Header="📋 Inspector Criptografic Bloc Audit (Genesis &amp; Previous Chain Hash)" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
-                        <TextBox x:Name="TxtAuditInspector" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="11" Height="100" />
+                    <GroupBox Grid.Row="2" Header="📋 Inspector Criptografic Bloc Audit &amp; Bloc Rădăcină (GENESIS)" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="280" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtAuditInspector" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="11" Height="110" />
+                            
+                            <!-- Dedicated Genesis Block Card -->
+                            <Border Grid.Column="1" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="10,0,0,0">
+                                <StackPanel>
+                                    <Border Background="#064E3B" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="0,0,0,6">
+                                        <TextBlock Text="🏷️ BLOC GENESIS (ANCHOR)" FontSize="10" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" />
+                                    </Border>
+                                    <TextBlock x:Name="TxtGenesisHash" Text="Hash Genesis: Verifică lanțul..." FontSize="10" FontFamily="Consolas, Cascadia Code" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </GroupBox>
                 </Grid>
 
@@ -482,19 +556,19 @@
 
                             <GroupBox Grid.Column="0" Header="👤 Înregistrare Operator Militar Nou" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,0,14,0">
                                 <StackPanel Margin="4,8,4,4">
-                                    <TextBlock Text="Nume Complet &amp; Grad: *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Nume Complet &amp; Grad: *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                     <TextBox x:Name="TxtNewOpName" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Margin="0,0,0,10" />
 
-                                    <TextBlock Text="Funcție &amp; Responsabilitate:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Funcție &amp; Responsabilitate:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                     <TextBox x:Name="TxtNewOpRole" Text="Operator Transferuri IT" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Margin="0,0,0,10" />
 
-                                    <TextBlock Text="Unitate Militară:" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Unitate Militară:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                     <TextBox x:Name="TxtNewOpUnit" Text="MApN / Structura Securitate" Style="{StaticResource TacticalTextBoxStyle}" Height="36" Margin="0,0,0,10" />
 
-                                    <TextBlock Text="Nivel Autorizare (Clearance HG 585):" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Nivel Autorizare (Clearance HG 585):" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                     <ComboBox x:Name="CmbNewOpClearance" Height="36" Margin="0,0,0,10" />
 
-                                    <TextBlock Text="PIN Inițial (6 cifre numerice): *" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,0,0,4" />
+                                    <TextBlock Text="PIN Inițial (6 cifre numerice): *" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4" />
                                     <PasswordBox x:Name="TxtNewOpPin" Style="{StaticResource TacticalPasswordBoxStyle}" Height="40" FontSize="18" MaxLength="6" Margin="0,0,0,16" />
 
                                     <Button Content="➕ Înregistrează Operator" Height="40" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnAddNewOperatorClick" />

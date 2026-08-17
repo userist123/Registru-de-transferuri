@@ -2,19 +2,19 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="Colors.xaml" />
+        <ResourceDictionary Source="ObsidianTactical.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!-- Base Window Style -->
     <Style TargetType="{x:Type Window}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Deep}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial" />
+        <Setter Property="Background" Value="{StaticResource BgDeepBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Cascadia Code, Arial" />
         <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
 
-    <!-- ================= MODERN DARK SCROLLBAR & SCROLLVIEWER ================= -->
+    <!-- ================= SARCINA 2.1: MODERN TACTICAL SCROLLBAR & SCROLLVIEWER ================= -->
     <Style x:Key="TacticalScrollThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="OverridesDefaultStyle" Value="true" />
         <Setter Property="IsTabStop" Value="false" />
@@ -30,7 +30,7 @@
                             <Setter Property="Background" Value="#64748B" />
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
-                            <Setter Property="Background" Value="{StaticResource Brush.Accent.Violet}" />
+                            <Setter Property="Background" Value="{StaticResource TacticalVioletBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -81,34 +81,34 @@
         </Setter>
     </Style>
 
-    <!-- ================= FULL CUSTOM DARK COMBOBOX (ERADICATES WHITE CHROME) ================= -->
-    <!-- ToggleButton for ComboBox -->
+    <!-- ================= SARCINA 2.2: CUSTOM COMBOBOX WITH DROP SHADOW & VECTOR ARROW ================= -->
     <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="{x:Type ToggleButton}">
         <Border x:Name="templateRoot"
                 Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
-                CornerRadius="5">
+                CornerRadius="6">
             <Border x:Name="splitBorder"
-                    Width="24"
+                    Width="28"
                     HorizontalAlignment="Right"
                     Background="Transparent"
                     BorderThickness="0">
                 <Path x:Name="arrow"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
-                      Data="M 0 0 L 4 4 L 8 0 Z"
-                      Fill="{StaticResource Brush.Text.Secondary}" />
+                      Data="M 0 0 L 4.5 4.5 L 9 0"
+                      Stroke="{StaticResource TextSecondaryBrush}"
+                      StrokeThickness="1.5" />
             </Border>
         </Border>
         <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="true">
-                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}" />
-                <Setter TargetName="arrow" Property="Fill" Value="{StaticResource Brush.Text.Primary}" />
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource TextPrimaryBrush}" />
             </Trigger>
             <Trigger Property="IsChecked" Value="true">
-                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource Brush.Accent.Violet}" />
-                <Setter TargetName="arrow" Property="Fill" Value="{StaticResource Brush.Accent.Violet}" />
+                <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource TacticalVioletBrush}" />
+                <Setter TargetName="arrow" Property="Stroke" Value="{StaticResource TacticalVioletBrush}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="false">
                 <Setter TargetName="templateRoot" Property="Opacity" Value="0.4" />
@@ -116,15 +116,14 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <!-- Universal ComboBox Style -->
     <Style TargetType="{x:Type ComboBox}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Padding" Value="12,8" />
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="Height" Value="36" />
+        <Setter Property="Height" Value="38" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
         <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
@@ -134,7 +133,7 @@
                     <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="0" MinWidth="24" />
+                            <ColumnDefinition Width="0" MinWidth="28" />
                         </Grid.ColumnDefinitions>
 
                         <Popup x:Name="PART_Popup"
@@ -145,13 +144,17 @@
                                Placement="Bottom"
                                PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
                             <Border x:Name="dropDownBorder"
-                                    Background="{StaticResource Brush.Bg.Card}"
-                                    BorderBrush="{StaticResource Brush.Border.Default}"
+                                    Background="{StaticResource BgCardBrush}"
+                                    BorderBrush="{StaticResource BorderDefaultBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="5"
+                                    CornerRadius="6"
                                     MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                    Padding="2">
+                                    Padding="4"
+                                    Margin="0,2,0,0">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="12" Direction="270" ShadowDepth="4" Opacity="0.45" Color="#000000" />
+                                </Border.Effect>
                                 <ScrollViewer x:Name="DropDownScrollViewer">
                                     <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
                                         <Canvas x:Name="canvas" HorizontalAlignment="Left" Height="0" VerticalAlignment="Top" Width="0">
@@ -192,10 +195,10 @@
                             <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="true">
-                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}" />
+                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="true">
-                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource Brush.Accent.Violet}" />
+                            <Setter TargetName="toggleButton" Property="BorderBrush" Value="{StaticResource TacticalVioletBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -205,7 +208,7 @@
 
     <Style TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="Template">
@@ -220,11 +223,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHighlightBrush}" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Accent.Violet}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource TacticalVioletBrush}" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -233,17 +236,18 @@
         </Setter>
     </Style>
 
-    <!-- ================= IMPLICIT GLOBAL TEXTBOX & PASSWORDBOX STYLES ================= -->
+    <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH CARETRUSH ================= -->
     <Style TargetType="{x:Type TextBox}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="36" />
         <Setter Property="Height" Value="38" />
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.CyberBlue}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource Brush.Accent.Violet}" />
+        <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -252,7 +256,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
@@ -261,16 +265,16 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Accent.Violet}" />
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TacticalVioletBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHighlightBrush}" />
                         </Trigger>
                         <Trigger Property="IsReadOnly" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Deep}" />
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgDeepBrush}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -279,15 +283,16 @@
     </Style>
 
     <Style TargetType="{x:Type PasswordBox}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="12,8" />
+        <Setter Property="MinHeight" Value="36" />
         <Setter Property="Height" Value="42" />
         <Setter Property="FontSize" Value="18" />
-        <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.CyberBlue}" />
-        <Setter Property="SelectionBrush" Value="{StaticResource Brush.Accent.Violet}" />
+        <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
@@ -296,7 +301,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
@@ -305,11 +310,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Accent.Violet}" />
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TacticalVioletBrush}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHighlightBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -317,16 +322,15 @@
         </Setter>
     </Style>
 
-    <!-- Named Aliases for backward compatibility -->
+    <!-- Aliases for backward compatibility -->
     <Style x:Key="TacticalTextBoxStyle" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}" />
     <Style x:Key="TacticalPasswordBoxStyle" TargetType="{x:Type PasswordBox}" BasedOn="{StaticResource {x:Type PasswordBox}}" />
 
     <!-- ================= BUTTON STYLES ================= -->
-    <!-- Base Default Button -->
     <Style TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="14,8" />
         <Setter Property="Height" Value="36" />
@@ -340,15 +344,15 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
-                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Brush.Border.Subtle}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHighlightBrush}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#1E293B" />
@@ -362,11 +366,10 @@
         </Setter>
     </Style>
 
-    <!-- Tactical Primary (Violet) Button Style -->
     <Style x:Key="TacticalPrimaryButtonStyle" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="{StaticResource Brush.Accent.Violet}" />
+        <Setter Property="Background" Value="{StaticResource TacticalVioletBrush}" />
         <Setter Property="Foreground" Value="#FFFFFF" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.VioletHover}" />
+        <Setter Property="BorderBrush" Value="{StaticResource TacticalVioletLightBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="14,8" />
         <Setter Property="Height" Value="36" />
@@ -380,22 +383,22 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Accent.VioletHover}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource TacticalVioletLightBrush}" />
                             <Setter TargetName="border" Property="BorderBrush" Value="#A78BFA" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#5B21B6" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Muted}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgElevatedBrush}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -405,11 +408,10 @@
 
     <Style x:Key="TacticalSecondaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}" />
 
-    <!-- Tactical Danger (Red) Button Style -->
     <Style x:Key="TacticalDangerButtonStyle" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="#7F1D1D" />
+        <Setter Property="Background" Value="{StaticResource CrimsonDarkBrush}" />
         <Setter Property="Foreground" Value="#FFFFFF" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.Crimson}" />
+        <Setter Property="BorderBrush" Value="{StaticResource CrimsonDangerBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="14,8" />
         <Setter Property="Height" Value="36" />
@@ -423,7 +425,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center"
                                           VerticalAlignment="Center" />
@@ -441,13 +443,13 @@
         </Setter>
     </Style>
 
-    <!-- Sidebar Navigation RadioButton Style -->
+    <!-- Sidebar Navigation RadioButton Style with Active Bar Indicator -->
     <Style x:Key="SidebarNavButtonStyle" TargetType="{x:Type RadioButton}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Padding" Value="12,10" />
         <Setter Property="Margin" Value="0,2" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -466,10 +468,10 @@
                             <Rectangle x:Name="activeIndicator"
                                        Grid.Column="0"
                                        Width="3"
-                                       Height="16"
+                                       Height="18"
                                        RadiusX="1.5"
                                        RadiusY="1.5"
-                                       Fill="{StaticResource Brush.Accent.Violet}"
+                                       Fill="{StaticResource TacticalVioletBrush}"
                                        Margin="0,0,10,0"
                                        Visibility="Collapsed" />
                             <ContentPresenter Grid.Column="1"
@@ -479,11 +481,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgElevatedBrush}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHighlightBrush}" />
                             <Setter TargetName="activeIndicator" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="#FFFFFF" />
                         </Trigger>
@@ -495,8 +497,8 @@
 
     <!-- Tactical Card / GroupBox Style -->
     <Style x:Key="TacticalGroupBoxStyle" TargetType="{x:Type GroupBox}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Card}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="Background" Value="{StaticResource BgCardBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="14" />
         <Setter Property="Margin" Value="0,0,0,12" />
@@ -506,7 +508,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="6">
+                            CornerRadius="8">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -514,17 +516,17 @@
                             </Grid.RowDefinitions>
                             <!-- Header Strip -->
                             <Border Grid.Row="0"
-                                    Background="{StaticResource Brush.Bg.Elevated}"
-                                    BorderBrush="{StaticResource Brush.Border.Default}"
+                                    Background="{StaticResource BgElevatedBrush}"
+                                    BorderBrush="{StaticResource BorderDefaultBrush}"
                                     BorderThickness="0,0,0,1"
-                                    CornerRadius="6,6,0,0"
-                                    Padding="12,9">
+                                    CornerRadius="8,8,0,0"
+                                    Padding="14,10">
                                 <StackPanel Orientation="Horizontal">
-                                    <Rectangle Width="3" Height="14" Fill="{StaticResource Brush.Accent.Violet}" Margin="0,0,8,0" RadiusX="1.5" RadiusY="1.5" />
+                                    <Rectangle Width="3" Height="14" Fill="{StaticResource TacticalVioletBrush}" Margin="0,0,8,0" RadiusX="1.5" RadiusY="1.5" />
                                     <ContentPresenter ContentSource="Header"
                                                       TextBlock.FontSize="12"
                                                       TextBlock.FontWeight="Bold"
-                                                      TextBlock.Foreground="{StaticResource Brush.Text.Primary}" />
+                                                      TextBlock.Foreground="{StaticResource TextPrimaryBrush}" />
                                 </StackPanel>
                             </Border>
                             <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}" />
@@ -535,45 +537,46 @@
         </Setter>
     </Style>
 
-    <!-- Tactical DataGrid Style -->
-    <Style x:Key="TacticalDataGridStyle" TargetType="{x:Type DataGrid}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Card}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="RowBackground" Value="{StaticResource Brush.Bg.Card}" />
-        <Setter Property="AlternatingRowBackground" Value="{StaticResource Brush.Bg.Deep}" />
-        <Setter Property="GridLinesVisibility" Value="Horizontal" />
-        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Brush.Border.Default}" />
-        <Setter Property="HeadersVisibility" Value="Column" />
-        <Setter Property="CanUserAddRows" Value="False" />
-        <Setter Property="AutoGenerateColumns" Value="False" />
-        <Setter Property="SelectionMode" Value="Single" />
-        <Setter Property="SelectionUnit" Value="FullRow" />
-        <Setter Property="RowHeaderWidth" Value="0" />
-    </Style>
-
+    <!-- ================= SARCINA 2.4: DATAGRID WITH ROW HIGHLIGHT ================= -->
     <Style TargetType="{x:Type DataGridColumnHeader}">
-        <Setter Property="Background" Value="{StaticResource Brush.Bg.Elevated}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+        <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="Padding" Value="10,10" />
+        <Setter Property="Padding" Value="12,10" />
         <Setter Property="BorderThickness" Value="0,0,1,1" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
     </Style>
 
     <Style TargetType="{x:Type DataGridRow}">
         <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Height" Value="40" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.Bg.Highlight}" />
+                <Setter Property="Background" Value="{StaticResource BgHighlightBrush}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="#3B2677" />
                 <Setter Property="Foreground" Value="#FFFFFF" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="TacticalDataGridStyle" TargetType="{x:Type DataGrid}">
+        <Setter Property="Background" Value="{StaticResource BgCardBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="RowBackground" Value="{StaticResource BgCardBrush}" />
+        <Setter Property="AlternatingRowBackground" Value="{StaticResource BgDeepBrush}" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderDefaultBrush}" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="RowHeaderWidth" Value="0" />
     </Style>
 
 </ResourceDictionary>
