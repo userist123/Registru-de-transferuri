@@ -1,11 +1,12 @@
 """
-Device Control Service - Scanner Hardware Real & Monitor Medii de Stocare (Endpoint Protector Model)
-Extrage datele exacte de telemetrie fizica direct din Windows WMI/CIM:
-- Model Fabricant, Interfata (USB / NVMe / SATA), Tip Mediu (Removibil / Fix)
-- Serie Hardware Firmware reala, VID/PID USB reale
-- Litere de Volum (C:, D:, E: etc.), Etichete de Volum, Sisteme de Fisiere (NTFS, FAT32, exFAT)
-- Capacitate totala si spatiu liber
-Fara date fictive sau aproximari!
+Device Control Service - Scanner Hardware Universal (Endpoint Protector Model)
+Scaneaza si monitorizeaza in timp real TOATE mediile de stocare conectate fizic la statie:
+1. Stick-uri USB Flash (USBSTOR / VID & PID reale)
+2. SSD-uri & HDD-uri Externe (USB / Type-C / Thunderbolt)
+3. Unitati Optice CD / DVD / Blu-Ray (CD-ROM / DVD-RW / BD - interne si externe)
+4. Unitati SATA / eSATA / Docking Bay / NVMe
+5. Carduri de memorie SD / MicroSD / MMC (Card Readers)
+Extrage VID/PID, VEN/PROD, Serii Hardware Firmware reale, Litere de Volum si Sisteme de Fisiere.
 """
 import re, subprocess, json, platform
 from typing import List, Dict, Optional, Tuple
@@ -18,16 +19,16 @@ class DeviceControlService:
 
     def scan_connected_devices(self) -> List[Dict]:
         """
-        Scaneaza toate mediile de stocare fizice conectate la statie (USB, SSD Extern, HDD, NVMe Intern).
-        Determina starea exacta, daca este mediu amovibil de transfer sau disc intern de sistem.
+        Scaneaza toate mediile de stocare fizice conectate la statie (USB, CD/DVD, SATA, NVMe, SD).
+        Potriveste dispozitivele cu registrul de medii amprentate din baza de date.
         """
         devices = []
         if platform.system() == "Windows":
-            devices = self._scan_windows_wmi()
+            devices = self._scan_windows_devices()
         else:
             devices = self._scan_posix_mock()
 
-        # Verificare status de autorizare in baza de date a statiei
+        # Verificare status de autorizare in baza de date a statiei dupa S/N, VID/PID sau Cod Inventar
         for dev in devices:
             matched_medium = self.db.find_medium_by_fingerprint(
                 dev.get('vid', ''), dev.get('pid', ''), dev.get('serial_number', '')
@@ -35,6 +36,7 @@ class DeviceControlService:
             if matched_medium:
                 dev['is_amprentat'] = True
                 dev['medium_id'] = matched_medium['id']
+                dev['nr_inregistrare_mediu'] = matched_medium.get('cod_inventar', 'N/A')
                 dev['cod_inventar'] = matched_medium['cod_inventar']
                 dev['denumire_custom'] = matched_medium.get('denumire_custom') or dev.get('volume_name') or matched_medium['cod_inventar']
                 dev['status_politica'] = matched_medium['status_politica']
@@ -45,9 +47,10 @@ class DeviceControlService:
             else:
                 dev['is_amprentat'] = False
                 dev['medium_id'] = None
+                dev['nr_inregistrare_mediu'] = "NEÎNREGISTRAT"
                 dev['cod_inventar'] = "NEAMPRENTAT"
-                if dev.get('is_removable'):
-                    dev['denumire_custom'] = dev.get('volume_name') or f"Dispozitiv USB ({dev.get('drive_letter', 'N/A')})"
+                if dev.get('is_removable') or dev.get('is_optical'):
+                    dev['denumire_custom'] = dev.get('volume_name') or f"{dev.get('tip_mediu', 'Mediu')} ({dev.get('drive_letter', 'N/A')})"
                     dev['status_politica'] = "neamprentat"
                 else:
                     dev['denumire_custom'] = f"Disc Intern Stație ({dev.get('drive_letter', 'C:, D:')})"
@@ -59,11 +62,13 @@ class DeviceControlService:
 
         return devices
 
-    def _scan_windows_wmi(self) -> List[Dict]:
+    def _scan_windows_devices(self) -> List[Dict]:
         devices = []
         ps_code = """
-$drives = Get-CimInstance Win32_DiskDrive
-$result = @()
+$allDisks = @()
+
+# 1. Scan Physical Disks (USB, SATA, NVMe, SD)
+$drives = Get-CimInstance Win32_DiskDrive -ErrorAction SilentlyContinue
 foreach ($d in $drives) {
     $parts = Get-CimAssociatedInstance -InputObject $d -ResultClassName Win32_DiskPartition -ErrorAction SilentlyContinue
     $vols = @()
@@ -84,7 +89,8 @@ foreach ($d in $drives) {
             }
         }
     }
-    $result += [PSCustomObject]@{
+    $allDisks += [PSCustomObject]@{
+        DeviceType = "Disk"
         Model = $d.Model
         InterfaceType = $d.InterfaceType
         MediaType = $d.MediaType
@@ -94,7 +100,38 @@ foreach ($d in $drives) {
         Volumes = $vols
     }
 }
-$result | ConvertTo-Json -Depth 4 -Compress
+
+# 2. Scan Optical Drives (CD/DVD/Blu-Ray)
+$cdroms = Get-CimInstance Win32_CDROMDrive -ErrorAction SilentlyContinue
+foreach ($cd in $cdroms) {
+    $vols = @()
+    if ($cd.Drive) {
+        $log = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($cd.Drive)'" -ErrorAction SilentlyContinue
+        if ($log) {
+            $vols += [PSCustomObject]@{
+                Letter = $log.DeviceID
+                Label = $log.VolumeName
+                FileSystem = $log.FileSystem
+                FreeGB = 0.0
+                TotalGB = [Math]::Round($log.Size / 1GB, 2)
+                VolumeSerial = $log.VolumeSerialNumber
+            }
+        }
+    }
+    $allDisks += [PSCustomObject]@{
+        DeviceType = "CDROM"
+        Model = $cd.Name
+        InterfaceType = "OPTICAL"
+        MediaType = "CD/DVD Optical Disc"
+        PNPDeviceID = $cd.PNPDeviceID
+        SerialNumber = ($cd.SerialNumber -replace '^\\s+|\\s+$', '')
+        SizeGB = 0.0
+        Volumes = $vols
+        MediaLoaded = $cd.MediaLoaded
+    }
+}
+
+$allDisks | ConvertTo-Json -Depth 4 -Compress
 """
         try:
             res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_code], capture_output=True, text=True, timeout=8)
@@ -104,6 +141,7 @@ $result | ConvertTo-Json -Depth 4 -Compress
                     raw = [raw]
 
                 for item in raw:
+                    dev_type = item.get('DeviceType', 'Disk')
                     pnp = item.get('PNPDeviceID', '') or ''
                     raw_serial = (item.get('SerialNumber') or '').strip()
                     model = (item.get('Model') or 'Storage Device').strip()
@@ -115,7 +153,6 @@ $result | ConvertTo-Json -Depth 4 -Compress
                     if isinstance(vols, dict):
                         vols = [vols]
 
-                    # Extract letters and labels
                     letters_list = [v.get('Letter') for v in vols if v.get('Letter')]
                     letters_str = ", ".join(letters_list) if letters_list else "Fără literă"
                     
@@ -123,7 +160,7 @@ $result | ConvertTo-Json -Depth 4 -Compress
                     vol_name = ", ".join(labels_list) if labels_list else ""
                     
                     fs_list = list(set([v.get('FileSystem') for v in vols if v.get('FileSystem')]))
-                    fs_str = ", ".join(fs_list) if fs_list else "NTFS"
+                    fs_str = ", ".join(fs_list) if fs_list else ("UDF/CDFS" if dev_type == "CDROM" else "NTFS")
                     
                     vol_serials = [v.get('VolumeSerial') for v in vols if v.get('VolumeSerial')]
                     vol_sn = ", ".join(vol_serials) if vol_serials else ""
@@ -131,20 +168,27 @@ $result | ConvertTo-Json -Depth 4 -Compress
                     free_gb = sum([float(v.get('FreeGB') or 0.0) for v in vols])
                     free_gb = round(free_gb, 2)
 
-                    # Determine if it is a removable USB device or an internal fixed disk
-                    is_usb = (interface == 'USB') or ('USB' in pnp.upper())
-                    is_removable = is_usb or ('REMOVABLE' in media_type_raw.upper()) or ('EXTERNAL' in media_type_raw.upper())
+                    is_optical = (dev_type == 'CDROM') or ('CDROM' in pnp.upper()) or ('OPTICAL' in interface)
+                    is_usb = (interface == 'USB') or ('USB' in pnp.upper()) or ('USBSTOR' in pnp.upper())
+                    is_sd = ('SD' in pnp.upper()) or ('CARDREADER' in model.upper()) or ('MMC' in model.upper())
+                    is_removable = is_usb or is_optical or is_sd or ('REMOVABLE' in media_type_raw.upper()) or ('EXTERNAL' in media_type_raw.upper())
                     
-                    vid, pid, sn = self._parse_pnp_and_serial(pnp, raw_serial, is_usb)
+                    vid, pid, sn = self._parse_hardware_ids(pnp, raw_serial, is_usb, is_optical, model)
 
-                    # Determine precise medium type
-                    if is_usb:
+                    # Tip mediu detaliat
+                    if is_optical:
+                        tip_mediu = "Unitate Optică (CD / DVD / Blu-Ray)"
+                    elif is_sd:
+                        tip_mediu = "Card Memorie (SD / MicroSD / MMC)"
+                    elif is_usb:
                         if size_gb <= 128 and ('REMOVABLE' in media_type_raw.upper() or 'FLASH' in model.upper() or 'USB' in model.upper()):
                             tip_mediu = "Stick USB Flash"
                         elif 'SSD' in model.upper() or 'NVME' in model.upper():
-                            tip_mediu = "SSD Extern (USB)"
+                            tip_mediu = "SSD Extern (USB / Type-C)"
                         else:
-                            tip_mediu = "HDD Extern (USB)"
+                            tip_mediu = "HDD Extern (USB / SATA Extern)"
+                    elif 'SATA' in interface or 'IDE' in interface:
+                        tip_mediu = "Disc SATA / eSATA"
                     elif 'NVME' in model.upper() or 'NVME' in pnp.upper():
                         tip_mediu = "Disc Intern Fix (NVMe SSD)"
                     elif 'SSD' in model.upper():
@@ -158,6 +202,7 @@ $result | ConvertTo-Json -Depth 4 -Compress
                         'interface_type': interface,
                         'media_type_raw': media_type_raw,
                         'is_removable': is_removable,
+                        'is_optical': is_optical,
                         'tip_mediu': tip_mediu,
                         'pnp_device_id': pnp,
                         'vid': vid,
@@ -176,26 +221,48 @@ $result | ConvertTo-Json -Depth 4 -Compress
         return devices
 
     def _scan_posix_mock(self) -> List[Dict]:
-        return [{
-            'model': 'Secure Military USB (Posix)',
-            'producator': 'Kingston',
-            'interface_type': 'USB',
-            'media_type_raw': 'Removable Media',
-            'is_removable': True,
-            'tip_mediu': 'Stick USB Flash',
-            'pnp_device_id': 'USB\\VID_0951&PID_1666\\001A2B3C4D',
-            'vid': '0951',
-            'pid': '1666',
-            'serial_number': '001A2B3C4D',
-            'drive_letter': '/media/usb0',
-            'volume_name': 'MAPN_SEC_USB',
-            'file_system': 'ext4',
-            'volume_serial': 'VOL-POSIX-99',
-            'capacitate_gb': 64.0,
-            'liber_gb': 42.5
-        }]
+        return [
+            {
+                'model': 'Secure Military USB (Posix)',
+                'producator': 'Kingston',
+                'interface_type': 'USB',
+                'media_type_raw': 'Removable Media',
+                'is_removable': True,
+                'is_optical': False,
+                'tip_mediu': 'Stick USB Flash',
+                'pnp_device_id': 'USB\\VID_0951&PID_1666\\001A2B3C4D',
+                'vid': '0951',
+                'pid': '1666',
+                'serial_number': '001A2B3C4D',
+                'drive_letter': '/media/usb0',
+                'volume_name': 'MAPN_SEC_USB',
+                'file_system': 'ext4',
+                'volume_serial': 'VOL-POSIX-99',
+                'capacitate_gb': 64.0,
+                'liber_gb': 42.5
+            },
+            {
+                'model': 'DVD-RW Drive (Posix)',
+                'producator': 'LG',
+                'interface_type': 'OPTICAL',
+                'media_type_raw': 'CD/DVD Optical Disc',
+                'is_removable': True,
+                'is_optical': True,
+                'tip_mediu': 'Unitate Optică (CD / DVD / Blu-Ray)',
+                'pnp_device_id': 'SCSI\\CDROM&VEN_LG&PROD_DVDRAM\\001',
+                'vid': 'VEN_LG',
+                'pid': 'PROD_DVDRAM',
+                'serial_number': 'SN-OPTICAL-01',
+                'drive_letter': '/dev/cdrom',
+                'volume_name': 'DISC_RAPORT_2026',
+                'file_system': 'iso9660',
+                'volume_serial': 'VOL-ISO-01',
+                'capacitate_gb': 4.7,
+                'liber_gb': 0.0
+            }
+        ]
 
-    def _parse_pnp_and_serial(self, pnp: str, raw_serial: str, is_usb: bool) -> Tuple[str, str, str]:
+    def _parse_hardware_ids(self, pnp: str, raw_serial: str, is_usb: bool, is_optical: bool, model: str) -> Tuple[str, str, str]:
         vid = "N/A"
         pid = "N/A"
         
@@ -208,6 +275,16 @@ $result | ConvertTo-Json -Depth 4 -Compress
             pid_match = re.search(r'PID_([0-9A-Fa-f]{4})', pnp)
             if pid_match:
                 pid = pid_match.group(1).upper()
+        else:
+            # Extract VEN_xxxx and PROD_yyyy from SCSI/SATA/CDROM PNP ID
+            ven_match = re.search(r'VEN_([^&]+)', pnp)
+            prod_match = re.search(r'PROD_([^&]+)', pnp)
+            if ven_match and prod_match:
+                vid = f"VEN_{ven_match.group(1)[:6].strip()}"
+                pid = f"PROD_{prod_match.group(1)[:8].strip()}"
+            elif is_optical:
+                vid = "OPTICAL"
+                pid = "CD/DVD"
 
         sn = raw_serial.strip() if raw_serial else ""
         if not sn or sn == "0" or "&" in sn:
@@ -222,13 +299,19 @@ $result | ConvertTo-Json -Depth 4 -Compress
         if not sn:
             if is_usb:
                 sn = f"SN-USB-{vid}-{pid}"
+            elif is_optical:
+                sn = f"SN-OPTICAL-{abs(hash(model)) % 100000000:08d}"
             else:
-                sn = f"SN-INTERNAL-{abs(hash(pnp)) % 100000000:08d}"
+                sn = f"SN-DISK-{abs(hash(pnp)) % 100000000:08d}"
 
         return vid, pid, sn
 
     def _extract_vendor(self, model: str) -> str:
-        common = ["SanDisk", "Kingston", "Samsung", "Corsair", "Transcend", "Crucial", "Western Digital", "WD", "Seagate", "Toshiba", "Micron", "Kioxia", "Intel", "SK Hynix"]
+        common = [
+            "SanDisk", "Kingston", "Samsung", "Corsair", "Transcend", "Crucial",
+            "Western Digital", "WD", "Seagate", "Toshiba", "Micron", "Kioxia",
+            "Intel", "SK Hynix", "LG", "ASUS", "Lite-On", "Pioneer", "Sony", "Hitachi"
+        ]
         for c in common:
             if c.lower() in model.lower():
                 return c

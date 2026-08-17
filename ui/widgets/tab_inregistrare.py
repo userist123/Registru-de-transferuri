@@ -125,22 +125,27 @@ class TabInregistrare(QWidget):
 
         form_med = QFormLayout()
         
-        self.txt_med_tip = QLineEdit()
-        self.txt_med_tip.setReadOnly(True)
-        form_med.addRow("Tip & Model Mediu:", self.txt_med_tip)
-
-        self.txt_med_sn = QLineEdit()
-        self.txt_med_sn.setReadOnly(True)
-        form_med.addRow("Serie Hardware S/N:", self.txt_med_sn)
-
-        self.txt_med_vid_pid = QLineEdit()
-        self.txt_med_vid_pid.setReadOnly(True)
-        form_med.addRow("VID : PID:", self.txt_med_vid_pid)
+        self.txt_med_nr_inreg = QLineEdit()
+        self.txt_med_nr_inreg.setReadOnly(True)
+        self.txt_med_nr_inreg.setPlaceholderText("Nr. înregistrare din Registrul de Medii de Stocare...")
+        form_med.addRow("Nr. Înregistrare Mediu: 🔒", self.txt_med_nr_inreg)
 
         self.txt_med_label = QLineEdit()
         self.txt_med_label.setReadOnly(True)
-        self.txt_med_label.setPlaceholderText("Etichetă militară / Cod inventar...")
-        form_med.addRow("Nume Volum / Cod: 🔒", self.txt_med_label)
+        self.txt_med_label.setPlaceholderText("Denumire personalizată volum...")
+        form_med.addRow("Denumire Volum: 🔒", self.txt_med_label)
+
+        self.txt_med_tip = QLineEdit()
+        self.txt_med_tip.setReadOnly(True)
+        form_med.addRow("Tip & Model Mediu: 🔒", self.txt_med_tip)
+
+        self.txt_med_vid_pid = QLineEdit()
+        self.txt_med_vid_pid.setReadOnly(True)
+        form_med.addRow("Identificator Hardware (VID:PID): 🔒", self.txt_med_vid_pid)
+
+        self.txt_med_sn = QLineEdit()
+        self.txt_med_sn.setReadOnly(True)
+        form_med.addRow("Serie Hardware Firmware (S/N): 🔒", self.txt_med_sn)
 
         cap_layout = QHBoxLayout()
         self.spn_med_cap = QDoubleSpinBox()
@@ -333,20 +338,25 @@ class TabInregistrare(QWidget):
         self.cmb_detected_media.addItem("-- Selectează un mediu conectat / amprentat --", None)
         for idx, dev in enumerate(self.connected_media):
             is_rem = dev.get('is_removable')
+            is_opt = dev.get('is_optical')
             ltr = dev.get('drive_letter', 'N/A')
             sn = dev.get('serial_number', '')
             model = f"{dev.get('producator', '')} {dev.get('model', '')}"
+            nr_inreg = dev.get('nr_inregistrare_mediu', dev.get('cod_inventar', ''))
             
-            if is_rem:
+            icon = "💿" if is_opt else ("🔌" if is_rem else "💻")
+            type_tag = dev.get('tip_mediu', 'Mediu')
+            
+            if is_rem or is_opt:
                 if dev.get('is_amprentat'):
                     pol = dev.get('status_politica', 'autorizat_rw').upper()
                     self.cmb_detected_media.addItem(
-                        f"🔌 [USB {ltr}] {model} (S/N: {sn}) - ✅ AUTORIZAT ({pol})",
+                        f"{icon} [{nr_inreg}] {type_tag} ({ltr}) - {model} - ✅ AUTORIZAT ({pol})",
                         dev
                     )
                 else:
                     self.cmb_detected_media.addItem(
-                        f"⚠️ [USB {ltr}] {model} (S/N: {sn}) - NEAMPRENTAT",
+                        f"⚠️ {icon} [{type_tag} {ltr}] {model} (S/N: {sn}) - NEÎNREGISTRAT",
                         dev
                     )
             else:
@@ -358,6 +368,7 @@ class TabInregistrare(QWidget):
     def _on_medium_selected(self, index):
         dev = self.cmb_detected_media.currentData()
         if not dev:
+            self.txt_med_nr_inreg.clear()
             self.txt_med_tip.clear()
             self.txt_med_sn.clear()
             self.txt_med_vid_pid.clear()
@@ -368,12 +379,14 @@ class TabInregistrare(QWidget):
             self.lbl_media_security_status.setStyleSheet("color: #8b949e;")
             return
 
+        nr_inreg = dev.get('nr_inregistrare_mediu', dev.get('cod_inventar', 'NEÎNREGISTRAT'))
+        self.txt_med_nr_inreg.setText(nr_inreg)
         self.txt_med_tip.setText(f"{dev.get('producator', '')} {dev.get('model', '')} [{dev.get('tip_mediu', 'Mediu')}]")
         self.txt_med_sn.setText(dev.get('serial_number', ''))
         
         vid = dev.get('vid', 'N/A')
         pid = dev.get('pid', 'N/A')
-        vid_pid_text = f"{vid}:{pid}" if vid != "N/A" else "N/A (NVMe/SATA)"
+        vid_pid_text = f"VID_{vid} & PID_{pid}" if (vid != "N/A" and not vid.startswith("VEN_")) else f"{vid} : {pid}"
         self.txt_med_vid_pid.setText(vid_pid_text)
         
         custom_or_inv = dev.get('denumire_custom') or dev.get('cod_inventar') or dev.get('volume_name') or 'Mediu'
@@ -384,13 +397,13 @@ class TabInregistrare(QWidget):
         if dev.get('is_amprentat'):
             pol = dev.get('status_politica', 'autorizat_rw')
             clf = dev.get('clasificare_max', 'Neclasificat')
-            self.lbl_media_security_status.setText(f"✅ Mediu Amovibil Autorizat: '{custom_or_inv}' | Plafon Maxim: {clf} | Politică: {pol.upper()}")
+            self.lbl_media_security_status.setText(f"✅ Mediu Înregistrat [{nr_inreg}] '{custom_or_inv}' | Nivel: {clf} | Politică: {pol.upper()}")
             self.lbl_media_security_status.setStyleSheet("color: #3fb950; font-weight: bold;")
-        elif not dev.get('is_removable'):
+        elif not dev.get('is_removable') and not dev.get('is_optical'):
             self.lbl_media_security_status.setText("💻 Disc Intern de Sistem al Stației (NVMe/SATA). Nu reprezintă un suport extern amovibil de transfer.")
             self.lbl_media_security_status.setStyleSheet("color: #58a6ff; font-weight: bold;")
         else:
-            self.lbl_media_security_status.setText("⚠️ MEDIU USB NEAMPRENTAT PE ACEASTĂ STAȚIE! Amprentați dispozitivul în tab-ul 'Medii Amprentate'.")
+            self.lbl_media_security_status.setText("⚠️ MEDIU NEÎNREGISTRAT PE ACEASTĂ STAȚIE! Înregistrați dispozitivul în tab-ul 'Medii Amprentate'.")
             self.lbl_media_security_status.setStyleSheet("color: #f85149; font-weight: bold;")
 
     def _on_classification_changed(self, index):
