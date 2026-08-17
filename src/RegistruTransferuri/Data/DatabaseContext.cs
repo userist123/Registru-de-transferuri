@@ -1,3 +1,4 @@
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.Sqlite;
@@ -182,17 +183,25 @@ public sealed class DatabaseContext : IDisposable
 
     public static (byte[] Hash, byte[] Salt) HashPin(string pin)
     {
-        var salt = RandomNumberGenerator.GetBytes(16);
-        using var pbkdf2 = new Rfc2898DeriveBytes(pin, salt, 100_000, HashAlgorithmName.SHA256);
-        var hash = pbkdf2.GetBytes(32);
-        return (hash, salt);
+        return PinHasher.HashPin(pin);
     }
 
     public static bool VerifyPin(string pin, byte[] storedHash, byte[] storedSalt)
     {
-        using var pbkdf2 = new Rfc2898DeriveBytes(pin, storedSalt, 100_000, HashAlgorithmName.SHA256);
-        var testHash = pbkdf2.GetBytes(32);
-        return CryptographicOperations.FixedTimeEquals(testHash, storedHash);
+        // 1. Incearca mai intai verificarea Argon2id (modern)
+        if (PinHasher.VerifyPin(pin, storedHash, storedSalt))
+            return true;
+
+        // 2. Fallback / Migrare transparenta pentru hash-uri vechi PBKDF2 (100k iteratii)
+        try
+        {
+            var testHash = Rfc2898DeriveBytes.Pbkdf2(pin, storedSalt, 100_000, HashAlgorithmName.SHA256, 32);
+            return CryptographicOperations.FixedTimeEquals(testHash, storedHash);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public List<Operator> GetActiveOperators()
@@ -553,6 +562,14 @@ public sealed class DatabaseContext : IDisposable
         insCmd.Parameters.AddWithValue("@prev", lastHash);
         insCmd.Parameters.AddWithValue("@ent_h", entryHash);
         insCmd.ExecuteNonQuery();
+
+        // Anti-rollback external anchor
+        try
+        {
+            var anchorPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "anchor.bin");
+            File.WriteAllText(anchorPath, $"{entryHash}|{ts}");
+        }
+        catch { }
     }
 
     public (bool Valid, int Count, string? Error) VerifyAuditChain()
@@ -561,30 +578,55 @@ public sealed class DatabaseContext : IDisposable
         cmd.CommandText = "SELECT sequence, timestamp_utc, action, operator_username, details, entity_id, previous_hash, entry_hash FROM audit_log ORDER BY sequence ASC";
         using var r = cmd.ExecuteReader();
 
-        var prevHash = "GENESIS_BLOCK";
+        var expectedPrev = "GENESIS_BLOCK";
         var count = 0;
+        var lastValidHash = "";
+
         while (r.Read())
         {
             count++;
-            var seq = r.GetInt32(0);
+            var seq = r.GetInt64(0);
             var ts = r.GetString(1);
             var act = r.GetString(2);
             var op = r.GetString(3);
-            var det = r.GetString(4);
-            var ent = r.IsDBNull(5) ? null : r.GetString(5);
-            var storedPrev = r.GetString(6);
-            var storedEntry = r.GetString(7);
+            var det = r.IsDBNull(4) ? "" : r.GetString(4);
+            var ent = r.IsDBNull(5) ? "" : r.GetString(5);
+            var prev = r.GetString(6);
+            var hash = r.GetString(7);
 
-            if (storedPrev != prevHash)
-                return (false, count, $"Discontinuitate la secventa #{seq}: previous_hash mismatch!");
+            if (prev != expectedPrev)
+            {
+                return (false, count, $"Integritate compromisă la secvența #{seq}: previous_hash invalid (Așteptat: {expectedPrev}, Găsit: {prev})");
+            }
 
-            var raw = $"{ts}|{act}|{op}|{det}|{ent}|{storedPrev}";
-            var calcEntry = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
-            if (calcEntry != storedEntry)
-                return (false, count, $"Alterare date la secventa #{seq}: hash intrare invalid!");
+            var rawToHash = $"{ts}|{act}|{op}|{det}|{(string.IsNullOrEmpty(ent) ? "" : ent)}|{prev}";
+            var calcHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToHash)));
 
-            prevHash = storedEntry;
+            if (calcHash != hash)
+            {
+                return (false, count, $"Integritate compromisă la secvența #{seq}: entry_hash calculat diferă de valoarea stocată!");
+            }
+
+            expectedPrev = hash;
+            lastValidHash = hash;
         }
+
+        // Verificare Anti-Rollback impotriva ancorei externe
+        try
+        {
+            var anchorPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "anchor.bin");
+            if (File.Exists(anchorPath) && !string.IsNullOrEmpty(lastValidHash))
+            {
+                var anchorContent = File.ReadAllText(anchorPath).Trim();
+                var parts = anchorContent.Split('|');
+                if (parts.Length > 0 && parts[0] != lastValidHash)
+                {
+                    return (false, count, "POSIBIL ATAC DE ROLLBACK DETECTAT: Baza de date este într-o stare anterioară ancorei externe de audit!");
+                }
+            }
+        }
+        catch { }
+
         return (true, count, null);
     }
 

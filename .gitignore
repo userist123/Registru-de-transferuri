@@ -1,10 +1,22 @@
+# Build and Output
 bin/
 obj/
 *.user
 *.suo
-.vs/
-master.key.dpapi
-transferuri.db
-*.db.bak
-*.db.bak.sha256
-migrare_v31.json
+*.userosscache
+*.sln.docstates
+
+# Database & Sensitive Local Logs
+*.db-wal
+*.db-shm
+audit_log.jsonl
+*.dpapi
+master.key.*
+anchor.bin
+
+# Python Legacy
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
