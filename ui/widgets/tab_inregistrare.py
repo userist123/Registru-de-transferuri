@@ -332,11 +332,28 @@ class TabInregistrare(QWidget):
         
         self.cmb_detected_media.addItem("-- Selectează un mediu conectat / amprentat --", None)
         for idx, dev in enumerate(self.connected_media):
-            status_tag = "✅ AUTORIZAT" if dev.get('is_amprentat') else "⚠️ NEAMPRENTAT"
-            self.cmb_detected_media.addItem(
-                f"[{dev.get('drive_letter', 'N/A')}] {dev.get('model', 'Dispozitiv')} (S/N: {dev.get('serial_number', '')}) - {status_tag}",
-                dev
-            )
+            is_rem = dev.get('is_removable')
+            ltr = dev.get('drive_letter', 'N/A')
+            sn = dev.get('serial_number', '')
+            model = f"{dev.get('producator', '')} {dev.get('model', '')}"
+            
+            if is_rem:
+                if dev.get('is_amprentat'):
+                    pol = dev.get('status_politica', 'autorizat_rw').upper()
+                    self.cmb_detected_media.addItem(
+                        f"🔌 [USB {ltr}] {model} (S/N: {sn}) - ✅ AUTORIZAT ({pol})",
+                        dev
+                    )
+                else:
+                    self.cmb_detected_media.addItem(
+                        f"⚠️ [USB {ltr}] {model} (S/N: {sn}) - NEAMPRENTAT",
+                        dev
+                    )
+            else:
+                self.cmb_detected_media.addItem(
+                    f"💻 [Disc Intern {ltr}] {model} (S/N: {sn}) - 🔒 Sistem Local",
+                    dev
+                )
 
     def _on_medium_selected(self, index):
         dev = self.cmb_detected_media.currentData()
@@ -351,21 +368,29 @@ class TabInregistrare(QWidget):
             self.lbl_media_security_status.setStyleSheet("color: #8b949e;")
             return
 
-        self.txt_med_tip.setText(f"{dev.get('producator', '')} {dev.get('model', '')} ({dev.get('tip_mediu', 'Stick USB')})")
+        self.txt_med_tip.setText(f"{dev.get('producator', '')} {dev.get('model', '')} [{dev.get('tip_mediu', 'Mediu')}]")
         self.txt_med_sn.setText(dev.get('serial_number', ''))
-        self.txt_med_vid_pid.setText(f"{dev.get('vid', '')}:{dev.get('pid', '')}")
-        custom_or_inv = dev.get('denumire_custom') or dev.get('cod_inventar') or 'Mediu Amovibil'
-        self.txt_med_label.setText(f"{custom_or_inv} [{dev.get('cod_inventar', 'N/A')}]")
+        
+        vid = dev.get('vid', 'N/A')
+        pid = dev.get('pid', 'N/A')
+        vid_pid_text = f"{vid}:{pid}" if vid != "N/A" else "N/A (NVMe/SATA)"
+        self.txt_med_vid_pid.setText(vid_pid_text)
+        
+        custom_or_inv = dev.get('denumire_custom') or dev.get('cod_inventar') or dev.get('volume_name') or 'Mediu'
+        self.txt_med_label.setText(f"{custom_or_inv} (Volum: {dev.get('drive_letter', 'N/A')})")
         self.spn_med_cap.setValue(float(dev.get('capacitate_gb', 0)))
         self.spn_med_free.setValue(float(dev.get('liber_gb', 0)))
 
         if dev.get('is_amprentat'):
             pol = dev.get('status_politica', 'autorizat_rw')
             clf = dev.get('clasificare_max', 'Neclasificat')
-            self.lbl_media_security_status.setText(f"✅ Mediu Amprentat: '{custom_or_inv}' | Plafon: {clf} | Politică: {pol.upper()}")
+            self.lbl_media_security_status.setText(f"✅ Mediu Amovibil Autorizat: '{custom_or_inv}' | Plafon Maxim: {clf} | Politică: {pol.upper()}")
             self.lbl_media_security_status.setStyleSheet("color: #3fb950; font-weight: bold;")
+        elif not dev.get('is_removable'):
+            self.lbl_media_security_status.setText("💻 Disc Intern de Sistem al Stației (NVMe/SATA). Nu reprezintă un suport extern amovibil de transfer.")
+            self.lbl_media_security_status.setStyleSheet("color: #58a6ff; font-weight: bold;")
         else:
-            self.lbl_media_security_status.setText("⚠️ MEDIU NEAMPRENTAT PE ACEASTĂ STAȚIE! Transferul poate fi restricționat conform SecOPs.")
+            self.lbl_media_security_status.setText("⚠️ MEDIU USB NEAMPRENTAT PE ACEASTĂ STAȚIE! Amprentați dispozitivul în tab-ul 'Medii Amprentate'.")
             self.lbl_media_security_status.setStyleSheet("color: #f85149; font-weight: bold;")
 
     def _on_classification_changed(self, index):

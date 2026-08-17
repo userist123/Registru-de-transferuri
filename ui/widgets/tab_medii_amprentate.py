@@ -26,11 +26,11 @@ class DialogAmprentareMediu(QDialog):
 
     def setup_ui(self):
         self.setWindowTitle("🛡️ Amprentare Mediu de Stocare pe această Stație")
-        self.setMinimumWidth(600)
+        self.setMinimumWidth(620)
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
 
-        info = QLabel("🔒 Datele hardware fizice sunt extrase automat din Windows și sunt IMUTABILE conform standardelor DFIR.\nPuteți personaliza Numele Volumului (în loc de Local Disk) și atributele de securitate.")
+        info = QLabel("🔒 Datele hardware fizice sunt citite direct din firmware/Windows și sunt IMUTABILE conform standardelor DFIR.\nPuteți personaliza Numele Volumului (în loc de Local Disk) și atributele de securitate.")
         info.setWordWrap(True)
         info.setStyleSheet("color: #58a6ff; background-color: #161b22; border: 1px solid #30363d; padding: 8px; border-radius: 4px;")
         layout.addWidget(info)
@@ -39,7 +39,7 @@ class DialogAmprentareMediu(QDialog):
         box_custom = QGroupBox("🏷️ 1. Denumire Personalizată Volum & Regim de Securitate")
         form_custom = QFormLayout(box_custom)
 
-        default_name = self.prefill.get('volume_name') or f"Stick {self.prefill.get('producator', 'USB')} {self.prefill.get('capacitate_gb', '')}GB"
+        default_name = self.prefill.get('volume_name') or self.prefill.get('denumire_custom') or f"{self.prefill.get('tip_mediu', 'Stick USB')} {self.prefill.get('producator', '')} {self.prefill.get('capacitate_gb', '')}GB"
         self.txt_denumire = QLineEdit(default_name)
         self.txt_denumire.setPlaceholderText("Ex: Stick Date Operative MApN 01, SSD Criptat CIFRU...")
         form_custom.addRow("Denumire Volum (Personalizat): *", self.txt_denumire)
@@ -78,30 +78,37 @@ class DialogAmprentareMediu(QDialog):
         layout.addWidget(box_custom)
 
         # 2. DATE TEHNICE HARDWARE EXTRASE DIN WINDOWS (STRICT READ-ONLY 🔒)
-        box_hw = QGroupBox("🔒 2. Date Hardware Generate de Windows (Imuabile / Read-Only)")
+        box_hw = QGroupBox("🔒 2. Date Hardware Reale Generate de Windows (Imuabile / Read-Only)")
         form_hw = QFormLayout(box_hw)
 
-        self.txt_hw_model = QLineEdit(f"{self.prefill.get('producator', '')} {self.prefill.get('model', '')}")
+        self.txt_hw_model = QLineEdit(f"{self.prefill.get('producator', '')} {self.prefill.get('model', '')} ({self.prefill.get('tip_mediu', '')})")
         self.txt_hw_model.setReadOnly(True)
-        form_hw.addRow("Model Hardware Fabrică: 🔒", self.txt_hw_model)
+        form_hw.addRow("Model Hardware & Tip: 🔒", self.txt_hw_model)
 
-        self.txt_vid_pid = QLineEdit(f"VID_{self.prefill.get('vid', '0781')} & PID_{self.prefill.get('pid', '5583')}")
+        vid = self.prefill.get('vid', 'N/A')
+        pid = self.prefill.get('pid', 'N/A')
+        vid_pid_text = f"VID_{vid} & PID_{pid}" if vid != "N/A" else "N/A (Disc Intern NVMe/SATA)"
+        self.txt_vid_pid = QLineEdit(vid_pid_text)
         self.txt_vid_pid.setReadOnly(True)
         form_hw.addRow("Identificator USB (VID:PID): 🔒", self.txt_vid_pid)
 
         self.txt_sn = QLineEdit(self.prefill.get('serial_number', 'SN-AUTO-01'))
         self.txt_sn.setReadOnly(True)
-        form_hw.addRow("Serie Hardware Reală (S/N): 🔒", self.txt_sn)
+        form_hw.addRow("Serie Hardware Firmware (S/N): 🔒", self.txt_sn)
 
         row_fs = QHBoxLayout()
-        self.txt_fs = QLineEdit(self.prefill.get('file_system', 'FAT32'))
+        self.txt_fs = QLineEdit(self.prefill.get('file_system', 'NTFS'))
         self.txt_fs.setReadOnly(True)
         row_fs.addWidget(self.txt_fs)
+        row_fs.addWidget(QLabel("Litere Volum:"))
+        self.txt_letter = QLineEdit(self.prefill.get('drive_letter', 'N/A'))
+        self.txt_letter.setReadOnly(True)
+        row_fs.addWidget(self.txt_letter)
         row_fs.addWidget(QLabel("Capacitate:"))
         self.txt_cap = QLineEdit(f"{self.prefill.get('capacitate_gb', 0)} GB")
         self.txt_cap.setReadOnly(True)
         row_fs.addWidget(self.txt_cap)
-        form_hw.addRow("Sistem Fișiere & Dimensiune: 🔒", row_fs)
+        form_hw.addRow("Sistem Fișiere, Volum & Mărime: 🔒", row_fs)
 
         layout.addWidget(box_hw)
 
@@ -199,11 +206,11 @@ class TabMediiAmprentate(QWidget):
         self.table_live = QTableWidget()
         self.table_live.setColumnCount(8)
         self.table_live.setHorizontalHeaderLabels([
-            "Literă", "Nume Volum / Model Fabrică", "VID : PID", "Serie Hardware (Imuabil)", "Capacitate / Liber", "Status Amprentă", "Plafon Clasificare", "Acțiuni"
+            "Litere / Volum", "Tip & Model Hardware Fabrică", "VID : PID", "Serie Hardware Firmware (Imuabil)", "Capacitate / Liber", "Tip Mediu & Status", "Plafon Clasificare", "Acțiuni"
         ])
         self.table_live.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_live.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self.table_live.setMaximumHeight(150)
+        self.table_live.setMaximumHeight(160)
         self.table_live.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         live_layout.addWidget(self.table_live)
 
@@ -264,13 +271,15 @@ class TabMediiAmprentate(QWidget):
         self.table_live.setRowCount(len(self.detected_devices))
         
         for row, dev in enumerate(self.detected_devices):
-            self.table_live.setItem(row, 0, QTableWidgetItem(dev.get('drive_letter', 'N/A')))
+            ltr = dev.get('drive_letter', 'N/A')
+            self.table_live.setItem(row, 0, QTableWidgetItem(f"📁 {ltr}"))
             
-            # Show friendly volume name + hardware model
-            vol_disp = f"🏷️ {dev.get('denumire_custom') or dev.get('volume_name') or 'Volum'} ({dev.get('producator', '')} {dev.get('model', '')})"
-            self.table_live.setItem(row, 1, QTableWidgetItem(vol_disp))
+            # Show exact hardware model & physical type
+            hw_desc = f"{dev.get('producator', '')} {dev.get('model', '')} [{dev.get('tip_mediu', 'Mediu')}]"
+            self.table_live.setItem(row, 1, QTableWidgetItem(hw_desc))
             
-            self.table_live.setItem(row, 2, QTableWidgetItem(f"{dev.get('vid', '')}:{dev.get('pid', '')}"))
+            vid_pid = f"{dev.get('vid', 'N/A')}:{dev.get('pid', 'N/A')}"
+            self.table_live.setItem(row, 2, QTableWidgetItem(vid_pid))
             
             sn_item = QTableWidgetItem(f"🔒 {dev.get('serial_number', '')}")
             sn_item.setFont(QFont("Consolas", 9))
@@ -285,8 +294,11 @@ class TabMediiAmprentate(QWidget):
                 _, pol_text = POLICY_COLORS.get(pol, ("#8b949e", pol))
                 status_item.setText(f"✅ {pol_text}")
                 status_item.setForeground(QColor(POLICY_COLORS.get(pol, ("#8b949e", ""))[0]))
+            elif not dev.get('is_removable'):
+                status_item.setText("💻 DISC INTERN FIX")
+                status_item.setForeground(QColor("#58a6ff"))
             else:
-                status_item.setText("⚠️ NEAMPRENTAT")
+                status_item.setText("⚠️ USB NEAMPRENTAT")
                 status_item.setForeground(QColor("#f85149"))
             self.table_live.setItem(row, 5, status_item)
 
@@ -297,11 +309,16 @@ class TabMediiAmprentate(QWidget):
             self.table_live.setItem(row, 6, clf_item)
 
             # Action button
-            if not dev.get('is_amprentat'):
+            if not dev.get('is_amprentat') and dev.get('is_removable'):
                 btn_enroll = QPushButton("⚡ Amprentează")
                 btn_enroll.setStyleSheet("background-color: #238636; color: white; padding: 3px 8px; font-weight: bold;")
                 btn_enroll.clicked.connect(lambda _, d=dev: self.open_enroll_dialog(d))
                 self.table_live.setCellWidget(row, 7, btn_enroll)
+            elif not dev.get('is_removable'):
+                lbl_int = QLabel("Sistem Local")
+                lbl_int.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                lbl_int.setStyleSheet("color: #8b949e; font-size: 11px;")
+                self.table_live.setCellWidget(row, 7, lbl_int)
             else:
                 lbl_ok = QLabel("Autorizat")
                 lbl_ok.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -350,13 +367,18 @@ class TabMediiAmprentate(QWidget):
             self.table_whitelist.item(row, 0).setData(Qt.ItemDataRole.UserRole, r['id'])
 
     def open_enroll_dialog(self, dev: dict = None):
-        if not dev and self.detected_devices:
-            dev = self.detected_devices[0]
-        elif not dev:
-            dev = {
-                'producator': 'SanDisk', 'model': 'Ultra USB', 'vid': '0781', 'pid': '5583',
-                'serial_number': 'SN-MANUAL-01', 'capacitate_gb': 32.0, 'file_system': 'FAT32', 'volume_name': 'Stick Nou'
-            }
+        if not dev:
+            # Filter for removable devices first
+            removables = [d for d in self.detected_devices if d.get('is_removable')]
+            if removables:
+                dev = removables[0]
+            elif self.detected_devices:
+                dev = self.detected_devices[0]
+            else:
+                dev = {
+                    'producator': 'SanDisk', 'model': 'Ultra USB', 'vid': '0781', 'pid': '5583',
+                    'serial_number': 'SN-MANUAL-01', 'capacitate_gb': 32.0, 'file_system': 'FAT32', 'volume_name': 'Stick Nou'
+                }
         dlg = DialogAmprentareMediu(self.db, self.operator_name, prefill_dev=dev, parent=self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.refresh_all()
