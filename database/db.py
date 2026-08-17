@@ -97,6 +97,11 @@ class DatabaseManager:
             cols = [c[1] for c in cursor.execute("PRAGMA table_info(operatori)").fetchall()]
             if "pin_hash" not in cols or "salt" not in cols:
                 cursor.execute("DROP TABLE operatori")
+            else:
+                if "unitate_militara" not in cols:
+                    cursor.execute("ALTER TABLE operatori ADD COLUMN unitate_militara TEXT DEFAULT 'MApN / Structura Securitate'")
+                if "autorizatie_nato" not in cols:
+                    cursor.execute("ALTER TABLE operatori ADD COLUMN autorizatie_nato TEXT DEFAULT 'NATO UNCLASSIFIED'")
 
         # 3. Contoare migration
         if "contoare" in existing_tables:
