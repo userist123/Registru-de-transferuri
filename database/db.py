@@ -278,6 +278,24 @@ class DatabaseManager:
         self._log_audit(None, "CREATE_OPERATOR", creator, f"Adaugat operator militar {nume} ({rol}, {autorizatie} / {nato_clearance})")
         return op_id
 
+    def update_operator_pin(self, op_id: str, new_pin: str, admin_name: str) -> bool:
+        p_hash, salt = self.hash_pin(new_pin)
+        now = datetime.now().isoformat()
+        self.conn.execute(
+            "UPDATE operatori SET pin_hash=?, salt=?, date_modified=? WHERE id=?",
+            (p_hash, salt, now, op_id)
+        )
+        self.conn.commit()
+        self._log_audit(None, "RESET_PIN", admin_name, f"Resetat PIN pentru operator ID {op_id}")
+        return True
+
+    def deactivate_operator(self, op_id: str, admin_name: str) -> bool:
+        now = datetime.now().isoformat()
+        self.conn.execute("UPDATE operatori SET activ=0, date_modified=? WHERE id=?", (now, op_id))
+        self.conn.commit()
+        self._log_audit(None, "DEACTIVATE_OPERATOR", admin_name, f"Dezactivat operator ID {op_id}")
+        return True
+
     # ===== REGISTRY NUMBERING & CLASSIFICATION =====
     def get_next_nr(self, prefix_institutie: str = "MAPN", clasificare: str = "Neclasificat") -> str:
         an = datetime.now().year

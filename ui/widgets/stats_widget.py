@@ -1,9 +1,9 @@
 """
-Stats Widget - Statistici de Securitate, Conformitate Militara & Device Control
+Stats Widget - Statistici de Securitate, Conformitate Militară & Device Control (v4.3)
 """
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QGroupBox, QTextEdit, QGridLayout
+    QGroupBox, QTextEdit, QGridLayout, QProgressBar
 )
 from PyQt6.QtCore import Qt
 from database.db import DatabaseManager
@@ -21,7 +21,7 @@ class StatsWidget(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(12)
         
-        header = QLabel("📊 Statistici de Securitate & Conformitate Militară (HG 585 / NATO / Device Control)")
+        header = QLabel("📊 Statistici de Securitate, Conformitate & Control Dispozitive (HG 585 / NATO / NIST)")
         header.setStyleSheet("font-size: 16px; font-weight: bold; color: #58a6ff;")
         layout.addWidget(header)
         
@@ -46,8 +46,8 @@ class StatsWidget(QWidget):
         self.kpi_media_blocked = self._create_kpi("Medii Blocate/Revocate", "0", "#da3633")
         grid_kpi.addWidget(self.kpi_media_blocked, 1, 1)
 
-        self.kpi_sanitizari = self._create_kpi("Sanitizări NIST 800-88", "0", "#1f6feb")
-        grid_kpi.addWidget(self.kpi_sanitizari, 1, 2)
+        self.kpi_volum = self._create_kpi("Volum Date Transferat", "0.0 GB", "#38bdf8")
+        grid_kpi.addWidget(self.kpi_volum, 1, 2)
 
         self.kpi_audit = self._create_kpi("Evenimente Audit SHA-256", "0", "#8b949e")
         grid_kpi.addWidget(self.kpi_audit, 1, 3)
@@ -55,7 +55,7 @@ class StatsWidget(QWidget):
         layout.addLayout(grid_kpi)
         
         # Detailed Analytics Card
-        box_det = QGroupBox("📜 Sinteză Analitică & Jurnal de Conformitate")
+        box_det = QGroupBox("📜 Sinteză Analitică & Jurnal de Conformitate INFOSEC")
         v_det = QVBoxLayout(box_det)
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
@@ -76,7 +76,7 @@ class StatsWidget(QWidget):
         layout.addWidget(title_label)
         
         value_label = QLabel(value)
-        value_label.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {color};")
+        value_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {color};")
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         value_label.setObjectName("value")
         layout.addWidget(value_label)
@@ -101,31 +101,49 @@ class StatsWidget(QWidget):
         
         self._update_kpi(self.kpi_media_total, str(stats.get('media_total', 0)))
         self._update_kpi(self.kpi_media_blocked, str(stats.get('media_blocked', 0)))
-        self._update_kpi(self.kpi_sanitizari, str(stats.get('sanitizari_efectuate', 0)))
+        
+        # Calculate total GB volume
+        vol_gb = self.db.conn.execute("SELECT COALESCE(SUM(arhiva_dim_gb), 0) FROM transferuri WHERE status='activ'").fetchone()[0]
+        self._update_kpi(self.kpi_volum, f"{vol_gb:.2f} GB")
+
         self._update_kpi(self.kpi_audit, str(stats.get('audit_events', 0)))
         
+        # Calculate direction stats
+        by_dir = stats.get('pe_directie', {})
+        dir_iesire = by_dir.get('iesire', 0)
+        dir_intrare = by_dir.get('intrare', 0)
+        dir_tranzit = by_dir.get('tranzit', 0)
+        
+        # Four-eyes count
+        four_eyes_count = self.db.conn.execute("SELECT COUNT(*) FROM transferuri WHERE four_eyes_aprobator IS NOT NULL AND four_eyes_aprobator != ''").fetchone()[0]
+        signed_count = self.db.conn.execute("SELECT COUNT(*) FROM transferuri WHERE semnat_operator=1").fetchone()[0]
+        sanitized_count = self.db.conn.execute("SELECT COUNT(*) FROM actiuni_sanitizare").fetchone()[0]
+        
         details = (
-            f"=== RAPORT DE CONFORMITATE STATISTICA - {self.db.local_host} ===\n\n"
-            f"1. EVIDENȚĂ TRANSFERURI DATE MILITARE:\n"
-            f"   - Total Transferuri Înregistrate: {stats.get('total_transferuri', 0)}\n"
-            f"   - Transferuri Active: {stats.get('transferuri_active', 0)}\n"
-            f"   - Repartiție pe Direcții: {stats.get('pe_directie', {})}\n\n"
-            f"2. REPARTIȚIE PE NIVELURI DE CLASIFICARE (HG 585/2002 / NATO AC/35):\n"
+            f"=== RAPORT SINTETIC DE SECURITATE & CONFORMITATE MILITARĂ ===\n"
+            f"Stație Lucru Locală: {self.db.local_host} | Regim: AIR-GAPPED IZOLAT\n"
+            f"Generat la: {self.db.conn.execute('SELECT datetime(\"now\", \"localtime\")').fetchone()[0]}\n\n"
+            f"1. FLUX TRANSFERURI:\n"
+            f"   • Total Înregistrări: {stats.get('total_transferuri', 0)} (Active: {stats.get('transferuri_active', 0)}, Anulate: {stats.get('transferuri_anulate', 0)})\n"
+            f"   • Ieșire (Outbound): {dir_iesire} transferuri\n"
+            f"   • Intrare (Inbound): {dir_intrare} transferuri\n"
+            f"   • Tranzit: {dir_tranzit} transferuri\n"
+            f"   • Volum Total Date Vehiculat: {vol_gb:.2f} GB\n\n"
+            f"2. DISTRIBUȚIE DUPĂ NIVELUL DE CLASIFICARE (HG 585 / NATO AC/35 / EUCI):\n"
+            f"   • Neclasificat (NATO UNCLASSIFIED): {by_clf.get('Neclasificat', 0)}\n"
+            f"   • Secret de Serviciu (NATO RESTRICTED): {by_clf.get('Secret de Serviciu', 0)}\n"
+            f"   • Secret (NATO CONFIDENTIAL): {by_clf.get('Secret', 0)}\n"
+            f"   • Strict Secret (NATO SECRET): {by_clf.get('Strict Secret', 0)}\n"
+            f"   • Strict Secret de Importanță Deosebită (COSMIC TOP SECRET): {by_clf.get('Strict Secret de Importanță Deosebită', 0)}\n\n"
+            f"3. CONTROL MEDII DE STOCARE (ENDPOINT PROTECTOR MODEL):\n"
+            f"   • Total Medii Amprentate în Whitelist: {stats.get('media_total', 0)}\n"
+            f"   • Autorizate Read/Write (Full): {stats.get('media_rw', 0)}\n"
+            f"   • Restricționate Read-Only (Doar Citire): {stats.get('media_ro', 0)}\n"
+            f"   • Blocate / Revocate de Securitate: {stats.get('media_blocked', 0)}\n"
+            f"   • Operațiuni de Sanitizare NIST SP 800-88r2 Executate: {sanitized_count}\n\n"
+            f"4. AUDIT & PRINCIPIUL CELOR 4 OCHI (FOUR-EYES PRINCIPLE):\n"
+            f"   • Transferuri Semnate Formal de Operator: {signed_count}\n"
+            f"   • Transferuri Aprobate Four-Eyes (Contrasemnate): {four_eyes_count}\n"
+            f"   • Evenimente Înregistrate în Lanțul Criptografic SHA-256: {stats.get('audit_events', 0)}\n"
         )
-        for clf, count in by_clf.items():
-            nato_eq = self.db.NATO_MAP.get(clf, 'N/A')
-            details += f"   * {clf.ljust(38)} [{nato_eq.ljust(22)}]: {count}\n"
-        
-        details += (
-            f"\n3. CONTROL MEDII AMPRENTATE (ENDPOINT PROTECTOR MODEL):\n"
-            f"   - Total Medii Înregistrate pe Stație : {stats.get('media_total', 0)}\n"
-            f"   - Autorizate Read/Write (Full Access): {stats.get('media_rw', 0)}\n"
-            f"   - Autorizate Read-Only               : {stats.get('media_ro', 0)}\n"
-            f"   - Blocate / Revocate de Securitate   : {stats.get('media_blocked', 0)}\n"
-            f"   - Proceduri Sanitizare NIST 800-88r2 : {stats.get('sanitizari_efectuate', 0)}\n\n"
-            f"4. INTEGRITATE & AUDIT CRIPTOGRAFIC:\n"
-            f"   - Evenimente Jurnalizate în Hash-Chain: {stats.get('audit_events', 0)}\n"
-            f"   - Status Lanț Tamper-Evident          : VERIFICABIL LA CERERE (SHA-256)\n"
-        )
-        
         self.details_text.setPlainText(details)
