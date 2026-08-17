@@ -15,6 +15,9 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // Previne oprirea automata a aplicatiei la inchiderea dialogului LoginWindow
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
         var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "transferuri.db");
         _db = new DatabaseContext(dbPath);
 
@@ -34,11 +37,12 @@ public partial class App : Application
         {
             var main = new MainWindow(_db, login.AuthenticatedOperator);
             MainWindow = main;
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
             main.Show();
         }
         else
         {
-            Shutdown();
+            Shutdown(0);
         }
     }
 
