@@ -24,6 +24,72 @@ class DatabaseManager:
         self._ensure_default_operators()
 
     def _init_schema(self):
+        cursor = self.conn.cursor()
+        existing_tables = [r[0] for r in cursor.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+
+        if "audit_log" in existing_tables:
+            cols = [c[1] for c in cursor.execute("PRAGMA table_info(audit_log)").fetchall()]
+            if "sequence_nr" not in cols:
+                cursor.execute("ALTER TABLE audit_log RENAME TO audit_log_v2")
+                cursor.execute("""
+                    CREATE TABLE audit_log (
+                        id TEXT PRIMARY KEY,
+                        sequence_nr INTEGER UNIQUE NOT NULL,
+                        transfer_id TEXT,
+                        actiune TEXT NOT NULL,
+                        operator TEXT NOT NULL,
+                        operator_id TEXT,
+                        timestamp TEXT NOT NULL,
+                        detalii TEXT,
+                        previous_hash TEXT,
+                        entry_hash TEXT NOT NULL
+                    )
+                """)
+                old_rows = cursor.execute("SELECT * FROM audit_log_v2 ORDER BY timestamp ASC").fetchall()
+                prev_hash = "GENESIS_HASH_00000000000000000000000000000000000000000000000000000000"
+                for idx, row in enumerate(old_rows, 1):
+                    r_dict = dict(row)
+                    t_id = r_dict.get('transfer_id')
+                    act = r_dict.get('actiune', 'EVENT')
+                    op = r_dict.get('operator', 'system')
+                    ts = r_dict.get('timestamp', datetime.now().isoformat())
+                    det = r_dict.get('detalii', '')
+                    e_id = r_dict.get('id', str(uuid.uuid4()))
+                    payload = f"{prev_hash}|{idx}|{ts}|{act}|{op}|{t_id or ''}|{det}"
+                    e_hash = hashlib.sha256(payload.encode('utf-8')).hexdigest()
+                    cursor.execute(
+                        "INSERT INTO audit_log VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (e_id, idx, t_id, act, op, None, ts, det, prev_hash, e_hash)
+                    )
+                    prev_hash = e_hash
+                cursor.execute("DROP TABLE audit_log_v2")
+
+        if "operatori" in existing_tables:
+            cols = [c[1] for c in cursor.execute("PRAGMA table_info(operatori)").fetchall()]
+            if "pin_hash" not in cols or "salt" not in cols:
+                cursor.execute("DROP TABLE operatori")
+
+        if "contoare" in existing_tables:
+            cols = [c[1] for c in cursor.execute("PRAGMA table_info(contoare)").fetchall()]
+            if "clasificare" not in cols:
+                cursor.execute("DROP TABLE contoare")
+
+        if "transferuri" in existing_tables:
+            cols = [c[1] for c in cursor.execute("PRAGMA table_info(transferuri)").fetchall()]
+            new_columns = [
+                ("operator_id", "TEXT"),
+                ("storage_medium_id", "TEXT"),
+                ("clasificare_eu", "TEXT"),
+                ("nr_aprobare", "TEXT"),
+                ("nr_exemplare", "INTEGER DEFAULT 1"),
+                ("motiv_anulare", "TEXT"),
+                ("semnat_de", "TEXT"),
+                ("semnat_la", "TEXT")
+            ]
+            for col_name, col_type in new_columns:
+                if col_name not in cols:
+                    cursor.execute(f"ALTER TABLE transferuri ADD COLUMN {col_name} {col_type}")
+
         schema_file = Path(__file__).parent / "schema.sql"
         if schema_file.exists():
             self.conn.executescript(schema_file.read_text(encoding='utf-8'))
