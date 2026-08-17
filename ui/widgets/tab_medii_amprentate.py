@@ -7,13 +7,53 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget,
     QTableWidgetItem, QPushButton, QHeaderView, QMessageBox,
     QLineEdit, QComboBox, QGroupBox, QDialog, QFormLayout,
-    QDoubleSpinBox, QTextEdit, QMenu, QSplitter, QInputDialog
+    QDoubleSpinBox, QTextEdit, QMenu, QSplitter, QInputDialog, QFileDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 from database.db import DatabaseManager
 from services.device_control_service import DeviceControlService
+from services.export_service import ExportService
 from ui.theme import get_classification_badge_style, get_policy_badge_style, POLICY_COLORS, CLASSIFICATION_COLORS
+
+
+class DialogSanitizationCertificatePreview(QDialog):
+    """Previzualizare și salvare a Certificatului Oficial de Sanitizare NIST SP 800-88r2."""
+    def __init__(self, medium_data: dict, cert_id: str, operator_executant: str, martor: str, metoda: str, parent=None):
+        super().__init__(parent)
+        self.medium_data = medium_data
+        self.cert_id = cert_id
+        self.setWindowTitle(f"🛡️ Certificat Sanitizare NIST SP 800-88r2 — {cert_id}")
+        self.resize(780, 600)
+        
+        layout = QVBoxLayout(self)
+        self.txt_html = QTextEdit()
+        self.txt_html.setReadOnly(True)
+        self.html_content = ExportService.generate_sanitization_certificate_html(
+            medium_data, operator_executant, martor, f"Certificat ID: {cert_id}", metoda
+        )
+        self.txt_html.setHtml(self.html_content)
+        layout.addWidget(self.txt_html)
+
+        btns = QHBoxLayout()
+        btns.addStretch()
+
+        btn_save = QPushButton("💾 Salvează Certificat HTML / PDF")
+        btn_save.setObjectName("primary")
+        btn_save.clicked.connect(self._save_cert)
+        btns.addWidget(btn_save)
+
+        btn_close = QPushButton("Închide")
+        btn_close.clicked.connect(self.accept)
+        btns.addWidget(btn_close)
+        layout.addLayout(btns)
+
+    def _save_cert(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Salvare Certificat Sanitizare", f"Certificat_Sanitizare_{self.cert_id}.html", "HTML (*.html)")
+        if path:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(self.html_content)
+            QMessageBox.information(self, "Salvat", f"Certificatul de sanitizare a fost salvat:\n{path}")
 
 
 class DialogAmprentareMediu(QDialog):
@@ -490,7 +530,11 @@ class TabMediiAmprentate(QWidget):
                         med['id'], metoda, f"Sanitizare {metoda} executata pe statia {self.db.local_host}",
                         self.operator_name, martor, "Sef Structura Securitate"
                     )
-                    QMessageBox.information(self, "Sanitizare Finalizată", f"Certificat generat cu succes:\n{cert}\n\nJurnalizat în lanțul de audit!")
                     self.refresh_all()
+                    self.media_changed.emit()
+                    dlg_cert = DialogSanitizationCertificatePreview(
+                        med, cert, self.operator_name, martor, metoda_full, parent=self
+                    )
+                    dlg_cert.exec()
                 except Exception as e:
                     QMessageBox.critical(self, "Eroare", f"Eroare sanitizare:\n{str(e)}")
