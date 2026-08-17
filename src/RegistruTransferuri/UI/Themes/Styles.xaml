@@ -239,8 +239,8 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Height" Value="36" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Height" Value="38" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.CyberBlue}" />
         <Setter Property="SelectionBrush" Value="{StaticResource Brush.Accent.Violet}" />
@@ -252,7 +252,8 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5">
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
                                       Margin="0"
@@ -282,9 +283,9 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Default}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,8" />
-        <Setter Property="Height" Value="36" />
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Height" Value="42" />
+        <Setter Property="FontSize" Value="18" />
         <Setter Property="CaretBrush" Value="{StaticResource Brush.Accent.CyberBlue}" />
         <Setter Property="SelectionBrush" Value="{StaticResource Brush.Accent.Violet}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -295,7 +296,8 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="5">
+                            CornerRadius="5"
+                            Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
                                       Margin="0"

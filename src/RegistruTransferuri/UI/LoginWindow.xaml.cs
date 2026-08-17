@@ -21,7 +21,7 @@ public partial class LoginWindow : Window
     private void LoadOperators()
     {
         _operators = _db.GetActiveOperators();
-        OperatorCombo.ItemsSource = _operators.Select(o => $"{o.FullName} ({o.Role} — {o.MaxClearance.ToDisplayName()})").ToList();
+        OperatorCombo.ItemsSource = _operators.Select(o => $"{o.FullName} • [{o.MaxClearance.ToDisplayName()}]").ToList();
         if (_operators.Count > 0)
             OperatorCombo.SelectedIndex = 0;
     }
