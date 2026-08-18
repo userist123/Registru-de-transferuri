@@ -332,6 +332,15 @@ public partial class MainWindow : Window
             TxtPayloadPath.Text = ofd.FileName;
             TxtPayloadFileName.Text = Path.GetFileName(ofd.FileName);
 
+            // 3. Autocompletare inteligenta din numele fisierului conform HG 585
+            var parsed = FileNameRegistryParser.Parse(ofd.FileName);
+            if (parsed.Success && !string.IsNullOrEmpty(parsed.ExtractedRegistryNumber))
+            {
+                TxtRegNumber.Text = parsed.ExtractedRegistryNumber;
+                if (parsed.SuggestedClassification.HasValue)
+                    CmbNewTxClass.SelectedItem = parsed.SuggestedClassification.Value;
+            }
+
             using var stream = File.OpenRead(ofd.FileName);
             using var sha = SHA256.Create();
             var hash = Convert.ToHexString(sha.ComputeHash(stream)).ToLowerInvariant();
@@ -364,8 +373,22 @@ public partial class MainWindow : Window
 
         var med = _detectedMedia[CmbDetectedMedia.SelectedIndex];
 
+        // Validare HARD Plafon Maxim Clasificare Mediu de Stocare
+        var enrolled = _mediaAssets.FirstOrDefault(a => string.Equals(a.SerialNumber.Trim(), med.SerialNumber.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (enrolled != null && (int)classification > (int)enrolled.MaxClassification)
+        {
+            MessageBox.Show(
+                $"⛔ BLOCARE DE SECURITATE (PLAFON CLASIFICARE DEPĂȘIT):\n\n" +
+                $"Mediul de stocare selectat [{enrolled.FriendlyName}] are plafonul maxim autorizat: [{enrolled.MaxClassification.ToDisplayName()}].\n" +
+                $"Transferul curent necesită nivelul: [{classification.ToDisplayName()}].\n\n" +
+                $"Conform HG 585/2002 Art. 60, este strict interzisă scrierea de date clasificate peste plafonul fizic al suportului!",
+                "Plafon Clasificare Depășit", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
         // 4-Eyes Dual Authorization pentru transferuri clasificate
         string? approverName = null;
+        string? hmacSig = null;
         if (classification >= ClassificationLevel.Secret)
         {
             var fourEyes = new FourEyesAuthDialog(_db, _operator) { Owner = this };
@@ -375,6 +398,7 @@ public partial class MainWindow : Window
                 return;
             }
             approverName = fourEyes.ApprovedWitness.FullName;
+            hmacSig = fourEyes.FourEyesHmacSignature;
         }
 
         var tx = new TransferRecord
@@ -402,6 +426,8 @@ public partial class MainWindow : Window
         };
 
         _db.InsertTransfer(tx);
+        _db.AppendAudit("REGISTER_TRANSFER", _operator.FullName, $"Înregistrat transfer #{tx.RegistryNumber} [{tx.Classification.ToDisplayName()}] către {tx.DestinationInstitution} (Four-Eyes: {approverName ?? "N/A"}, HMAC: {hmacSig?[..16] ?? "N/A"})", tx.RegistryNumber);
+
         MessageBox.Show($"Transferul #{tx.RegistryNumber} a fost înregistrat cu succes în Registrul Militar!", "Înregistrare Confirmată", MessageBoxButton.OK, MessageBoxImage.Information);
 
         // Reset

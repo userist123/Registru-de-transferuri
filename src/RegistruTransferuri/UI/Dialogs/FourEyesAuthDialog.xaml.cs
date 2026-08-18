@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows;
 using RegistruTransferuri.Data;
 using RegistruTransferuri.Models;
@@ -12,6 +14,7 @@ public partial class FourEyesAuthDialog : Window
 
     public Operator? ApprovedWitness { get; private set; }
     public string ApproverRole { get; private set; } = string.Empty;
+    public string? FourEyesHmacSignature { get; private set; }
 
     public FourEyesAuthDialog(DatabaseContext db, Operator currentOperator)
     {
@@ -54,6 +57,11 @@ public partial class FourEyesAuthDialog : Window
             MessageBox.Show("PIN incorect pentru martorul selectat!", "Autentificare Eșuată", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+
+        // Semnare Criptografica Four-Eyes HMAC-SHA256
+        using var hmac = new HMACSHA256(authOp.PinHash);
+        var canonicalPayload = $"{authOp.Id}|{authOp.FullName}|{DateTime.UtcNow:O}|FOUR_EYES_CONFIRMED";
+        FourEyesHmacSignature = Convert.ToHexString(hmac.ComputeHash(Encoding.UTF8.GetBytes(canonicalPayload)));
 
         ApprovedWitness = authOp;
         ApproverRole = ApproverRoleBox.Text.Trim();

@@ -333,4 +333,22 @@ public class SecurityTests
         var evalBlockAll = DevicePolicyEnforcer.EvaluateDevice(devAuth, whitelist);
         Assert.False(evalBlockAll.IsAllowed);
     }
+
+    [Fact]
+    public void FileNameRegistryParser_ExtractsRegistryNumbersAndClassification()
+    {
+        var test1 = FileNameRegistryParser.Parse("MAPN-2026-S-0042-Raport.docx");
+        Assert.True(test1.Success);
+        Assert.Equal("MAPN-2026-0-0042", test1.ExtractedRegistryNumber);
+        Assert.Equal(ClassificationLevel.Secret, test1.SuggestedClassification);
+
+        var test2 = FileNameRegistryParser.Parse("1045-26SS-Documentatie.zip");
+        Assert.True(test2.Success);
+        Assert.Equal("MAPN-2026-00-1045", test2.ExtractedRegistryNumber);
+        Assert.Equal(ClassificationLevel.StrictSecret, test2.SuggestedClassification);
+
+        var test3 = FileNameRegistryParser.Parse("000-55-2026.pdf");
+        Assert.True(test3.Success);
+        Assert.Equal(ClassificationLevel.StrictSecretDeImportantaDeosebita, test3.SuggestedClassification);
+    }
 }
