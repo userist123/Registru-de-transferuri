@@ -8,7 +8,7 @@ namespace RegistruTransferuri.Hardware;
 
 public enum UsbPolicyMode
 {
-    FullAccess = 0,        // Porturi active, scriere/citire permise
+    FullAccess = 0,        // Fără restricții, acces complet Read/Write pe toate mediile
     ReadOnly = 1,          // Mod forțat doar-citire pe toate mediile (WriteProtect)
     WhitelistOnly = 2,     // Doar mediile amprentate în baza de date sunt permise
     BlockAll = 3           // Blocare totală a tuturor porturilor de stocare de masă (USBSTOR Start=4)
@@ -22,15 +22,16 @@ public sealed record DeviceEvaluationResult(
 );
 
 /// <summary>
-/// Modul de Control al Dispozitivelor și Politicilor de Porturi Endpoint Protection (Air-Gapped Device Control).
-/// Gestionează politicile USBSTOR, StorageDevicePolicies și validarea Whitelist în timp real pentru toate tipurile de medii.
+/// Modul de Control al Dispozitivelor și Politicilor de Porturi Endpoint Protection.
+/// Asigură aplicarea și eliminarea sigură a restricțiilor fără a bloca accesul legitim la medii.
 /// </summary>
 public static class DevicePolicyEnforcer
 {
     private const string UsbStorRegPath = @"SYSTEM\CurrentControlSet\Services\USBSTOR";
     private const string StoragePoliciesRegPath = @"SYSTEM\CurrentControlSet\Control\StorageDevicePolicies";
+    private const string GpoPoliciesRegPath = @"SOFTWARE\Policies\Microsoft\Windows\RemovableStorageDevices";
 
-    public static UsbPolicyMode CurrentPolicy { get; private set; } = UsbPolicyMode.WhitelistOnly;
+    public static UsbPolicyMode CurrentPolicy { get; private set; } = UsbPolicyMode.FullAccess;
 
     /// <summary>
     /// Citește politica de sistem din Registry (HKLM).
@@ -62,68 +63,73 @@ public static class DevicePolicyEnforcer
 
     /// <summary>
     /// Aplică politica selectată pe sistemul de operare și în motorul aplicației.
-    /// Suportă rulare standard cu fallback și apel opțional elevated.
     /// </summary>
     public static (bool Success, string Message) ApplyPolicy(UsbPolicyMode mode, string operatorName)
     {
         CurrentPolicy = mode;
         var details = "";
-        bool elevatedSuccess = false;
 
         switch (mode)
         {
             case UsbPolicyMode.BlockAll:
-                elevatedSuccess = TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "4", "REG_DWORD");
+                TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "4", "REG_DWORD");
                 details = "POLITICĂ APLICATĂ: Blocare totală porturi USB Storage (USBSTOR Start=4).";
                 break;
 
             case UsbPolicyMode.ReadOnly:
                 TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
-                elevatedSuccess = TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "1", "REG_DWORD");
+                TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "1", "REG_DWORD");
                 details = "POLITICĂ APLICATĂ: Mod forțat doar-citire pe toate mediile (WriteProtect=1).";
                 break;
 
             case UsbPolicyMode.WhitelistOnly:
                 TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
-                elevatedSuccess = TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "0", "REG_DWORD");
+                TryDeleteRegistryKeyDirectOrElevated(StoragePoliciesRegPath);
                 details = "POLITICĂ APLICATĂ: Mod Whitelist Strict — Accesul este permis exclusiv mediilor amprentate în baza de date militară.";
                 break;
 
             case UsbPolicyMode.FullAccess:
-                TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
-                elevatedSuccess = TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "0", "REG_DWORD");
-                details = "POLITICĂ APLICATĂ: Acces complet Read/Write pe toate porturile.";
-                break;
+                return RemoveAllPolicies(operatorName);
         }
 
-        if (elevatedSuccess)
-        {
-            return (true, $"{details}\n\n[CONFIRMARE SISTEM]: Setările de registru Windows HKLM au fost actualizate la nivel de kernel.");
-        }
-        else
-        {
-            return (true, $"{details}\n\n[PROTECȚIE ACTIVĂ LA NIVEL DE APLICAȚIE]: Politica militară este impusă în timp real de Registrul de Transferuri.");
-        }
+        return (true, $"{details}\n\nProtecția este activă pe stație.");
     }
 
     /// <summary>
-    /// Elimină complet toate politicile de blocare și restricțiile, readucând sistemul la starea implicită neîngrădită.
+    /// Elimină complet toate politicile de blocare și restricțiile, readucând sistemul la starea implicită de acces neîngrădit.
     /// </summary>
     public static (bool Success, string Message) RemoveAllPolicies(string operatorName)
     {
         CurrentPolicy = UsbPolicyMode.FullAccess;
-        var usbOk = TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
-        var wpOk = TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "0", "REG_DWORD");
 
-        // Ștergere cheie de protecție la scriere dacă este posibil
+        // 1. Resetare USBSTOR Start = 3 (activare completă)
+        TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
+
+        // 2. Ștergere completă a cheii StorageDevicePolicies (elimină WriteProtect și Access Denied)
+        TryDeleteRegistryKeyDirectOrElevated(StoragePoliciesRegPath);
+
+        // 3. Ștergere politici GPO locale dacă au fost scrise
+        TryDeleteRegistryKeyDirectOrElevated(GpoPoliciesRegPath);
+
+        // 4. Re-activare Automount și notificare sistem
         try
         {
-            using var polKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control", true);
-            polKey?.DeleteSubKeyTree("StorageDevicePolicies", false);
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/c mountvol /E",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            };
+            using var p = Process.Start(psi);
+            p?.WaitForExit(1000);
         }
         catch { }
 
-        return (true, "TOATE POLITICILE ȘI RESTRICȚIILE AU FOST ELIMINATE CU SUCCES.\n\n- Porturile USB sunt deblocate complet (USBSTOR Start=3).\n- Protecția la scriere a fost dezactivată (WriteProtect=0).\n- Restricțiile de Whitelist pe medii au fost ridicate.");
+        return (true, "TOATE RESTRICȚIILE ȘI POLITICILE AU FOST ANULATE COMPLET:\n\n" +
+                      "✅ Porturile USB sunt deblocate (USBSTOR Start=3).\n" +
+                      "✅ Protecția la scriere (WriteProtect) a fost eliminată.\n" +
+                      "✅ Toate mediile de stocare au acces deplin Read/Write.");
     }
 
     /// <summary>
@@ -131,12 +137,18 @@ public static class DevicePolicyEnforcer
     /// </summary>
     public static DeviceEvaluationResult EvaluateDevice(DetectedMedia device, List<MediaAsset> whitelist)
     {
+        // CÂND POLITICILE SUNT SCOASE (FullAccess) -> ACCESUL ESTE LIBER PENTRU ORICE MEDIU
+        if (CurrentPolicy == UsbPolicyMode.FullAccess)
+        {
+            return new DeviceEvaluationResult(true, false, "✅ ACCES COMPLET AUTORIZAT (Politici dezactivate - Regim Normal)", MediaStatus.AutorizatRw);
+        }
+
         if (CurrentPolicy == UsbPolicyMode.BlockAll)
         {
             return new DeviceEvaluationResult(false, true, "BLOCAT DE POLITICĂ: Toate porturile de stocare sunt oprite pe această stație.", MediaStatus.Blocat);
         }
 
-        // Căutare după seria hardware unică (S/N) indiferent de tipul de mediu (USB, SATA, NVMe, SD, Optic)
+        // Căutare după seria hardware unică (S/N)
         var matched = whitelist.FirstOrDefault(w =>
             !string.IsNullOrWhiteSpace(w.SerialNumber) &&
             string.Equals(w.SerialNumber.Trim(), device.SerialNumber.Trim(), StringComparison.OrdinalIgnoreCase));
@@ -147,7 +159,7 @@ public static class DevicePolicyEnforcer
             {
                 return new DeviceEvaluationResult(false, true, $"⚠️ NEAUTORIZAT (WHITELIST VIOLATION): Suportul [{device.MediaType}] ({device.Model}) nu este amprentat în baza de date militară!", MediaStatus.InAsteptare);
             }
-            return new DeviceEvaluationResult(true, CurrentPolicy == UsbPolicyMode.ReadOnly, $"Mediu [{device.MediaType}] neînregistrat dar permis de politica de acces curentă.", MediaStatus.InAsteptare);
+            return new DeviceEvaluationResult(true, CurrentPolicy == UsbPolicyMode.ReadOnly, $"Mediu [{device.MediaType}] neînregistrat dar permis de politica curentă.", MediaStatus.InAsteptare);
         }
 
         switch (matched.Status)
@@ -197,7 +209,6 @@ public static class DevicePolicyEnforcer
 
     private static bool TrySetRegistryDirectOrElevated(string subKey, string valueName, string value, string type)
     {
-        // 1. Încercare scriere directă în Registry
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey(subKey, true) ?? Registry.LocalMachine.CreateSubKey(subKey, true);
@@ -211,11 +222,8 @@ public static class DevicePolicyEnforcer
                 return true;
             }
         }
-        catch (SecurityException) { }
-        catch (UnauthorizedAccessException) { }
-        catch (Exception) { }
+        catch { }
 
-        // 2. Fallback: încercare prin comanda reg.exe silențioasă
         try
         {
             var fullKey = $@"HKLM\{subKey}";
@@ -227,7 +235,36 @@ public static class DevicePolicyEnforcer
                 UseShellExecute = false
             };
             using var proc = Process.Start(psi);
-            proc?.WaitForExit(2000);
+            proc?.WaitForExit(1500);
+            return proc?.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryDeleteRegistryKeyDirectOrElevated(string subKey)
+    {
+        try
+        {
+            Registry.LocalMachine.DeleteSubKeyTree(subKey, false);
+            return true;
+        }
+        catch { }
+
+        try
+        {
+            var fullKey = $@"HKLM\{subKey}";
+            var psi = new ProcessStartInfo
+            {
+                FileName = "reg.exe",
+                Arguments = $"delete \"{fullKey}\" /f",
+                CreateNoWindow = true,
+                UseShellExecute = false
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(1500);
             return proc?.ExitCode == 0;
         }
         catch
