@@ -412,7 +412,7 @@ public partial class MainWindow : Window
         NavRegistru.IsChecked = true;
     }
 
-    // ================= TAB 3: CONTROL MEDII & WHITELIST =================
+    // ================= TAB 3: CONTROL MEDII, WHITELIST & ENDPOINT PROTECTION =================
     private void LoadMediaWhitelist()
     {
         _mediaAssets = _db.GetMediaAssets(TxtSearchMedia.Text.Trim());
@@ -420,6 +420,65 @@ public partial class MainWindow : Window
     }
 
     private void OnMediaFilterChanged(object sender, TextChangedEventArgs e) => LoadMediaWhitelist();
+
+    private void OnApplyPortPolicyClick(object sender, RoutedEventArgs e)
+    {
+        var mode = UsbPolicyMode.WhitelistOnly;
+        if (RadPolicyBlockAll.IsChecked == true) mode = UsbPolicyMode.BlockAll;
+        else if (RadPolicyReadOnly.IsChecked == true) mode = UsbPolicyMode.ReadOnly;
+        else if (RadPolicyFullAccess.IsChecked == true) mode = UsbPolicyMode.FullAccess;
+
+        var (success, msg) = DevicePolicyEnforcer.ApplyPolicy(mode, _operator.FullName);
+
+        switch (mode)
+        {
+            case UsbPolicyMode.BlockAll:
+                TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: BLOCARE TOTALĂ USB";
+                TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("CrimsonDangerBrush");
+                BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x7F, 0x1D, 0x1D));
+                break;
+            case UsbPolicyMode.ReadOnly:
+                TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: DOAR-CITIRE (READ-ONLY)";
+                TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("AmberWarningBrush");
+                BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x78, 0x35, 0x0F));
+                break;
+            case UsbPolicyMode.WhitelistOnly:
+                TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: WHITELIST STRICT";
+                TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("EmeraldSecurityBrush");
+                BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x06, 0x4E, 0x38));
+                break;
+            case UsbPolicyMode.FullAccess:
+                TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: ACCES COMPLET";
+                TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("CyberBlueBrush");
+                BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0x23, 0x3C));
+                break;
+        }
+
+        _db.AppendAudit("DEVICE_POLICY_CHANGE", _operator.FullName, $"Modificat politica endpoint pe porturi: {mode}");
+        MessageBox.Show(msg, "Endpoint Device Control", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void OnForceEjectMediaClick(object sender, RoutedEventArgs e)
+    {
+        if (GridLiveMedia.SelectedItem is not DetectedMedia med)
+        {
+            if (_detectedMedia.Count > 0) med = _detectedMedia[0];
+            else
+            {
+                MessageBox.Show("Niciun mediu conectat nu este selectat pentru ejectare.", "Atenție", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+        }
+
+        var res = MessageBox.Show($"Sunteți sigur că doriți să forțați EJECTAREA volumului [{med.DriveLetter}] ({med.Model})?", "Confirmare Ejectare", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (res == MessageBoxResult.Yes)
+        {
+            var ok = DevicePolicyEnforcer.EjectVolume(med.DriveLetter);
+            _db.AppendAudit("DEVICE_EJECT", _operator.FullName, $"Ejectat forțat mediu {med.DriveLetter} (S/N: {med.SerialNumber})");
+            RefreshLiveMedia();
+            MessageBox.Show(ok ? $"Comanda de ejectare a fost transmisă pentru volumul [{med.DriveLetter}]." : "Nu s-a putut ejecta volumul.", "Ejectare Endpoint", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
 
     private void OnEnrollDetectedMediaClick(object sender, RoutedEventArgs e)
     {

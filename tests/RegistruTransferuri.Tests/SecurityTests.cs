@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using RegistruTransferuri.Data;
+using RegistruTransferuri.Hardware;
 using RegistruTransferuri.Models;
 using RegistruTransferuri.Security;
 using RegistruTransferuri.Services;
@@ -290,5 +291,46 @@ public class SecurityTests
         {
             if (File.Exists(tempPdf)) File.Delete(tempPdf);
         }
+    }
+
+    [Fact]
+    public void DevicePolicyEnforcer_EvaluatesWhitelistAndBlocksUnauthorized()
+    {
+        var whitelist = new List<MediaAsset>
+        {
+            new MediaAsset
+            {
+                SerialNumber = "SN-AUTH-001",
+                FriendlyName = "Stick Operativ 01",
+                Status = MediaStatus.AutorizatRw
+            },
+            new MediaAsset
+            {
+                SerialNumber = "SN-BLOCKED-002",
+                FriendlyName = "Stick Compromis",
+                Status = MediaStatus.Blocat
+            }
+        };
+
+        var devAuth = new DetectedMedia("SN-AUTH-001", "0781", "5583", "SanDisk", "Ultra", 16000000000, "E:", "Stick USB", true, false);
+        var devBlocked = new DetectedMedia("SN-BLOCKED-002", "0781", "5583", "SanDisk", "Cruzer", 8000000000, "F:", "Stick USB", true, false);
+        var devUnknown = new DetectedMedia("SN-UNKNOWN-999", "1234", "5678", "Kingston", "DataTraveler", 32000000000, "G:", "Stick USB", true, false);
+
+        // 1. Whitelist Mode
+        DevicePolicyEnforcer.ApplyPolicy(UsbPolicyMode.WhitelistOnly, "TestOp");
+        var evalAuth = DevicePolicyEnforcer.EvaluateDevice(devAuth, whitelist);
+        Assert.True(evalAuth.IsAllowed);
+        Assert.False(evalAuth.IsReadOnlyEnforced);
+
+        var evalBlocked = DevicePolicyEnforcer.EvaluateDevice(devBlocked, whitelist);
+        Assert.False(evalBlocked.IsAllowed);
+
+        var evalUnknown = DevicePolicyEnforcer.EvaluateDevice(devUnknown, whitelist);
+        Assert.False(evalUnknown.IsAllowed);
+
+        // 2. BlockAll Mode
+        DevicePolicyEnforcer.ApplyPolicy(UsbPolicyMode.BlockAll, "TestOp");
+        var evalBlockAll = DevicePolicyEnforcer.EvaluateDevice(devAuth, whitelist);
+        Assert.False(evalBlockAll.IsAllowed);
     }
 }

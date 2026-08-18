@@ -328,26 +328,58 @@
                     </ScrollViewer>
                 </Grid>
 
-                <!-- ================= 3. VIEW CONTROL MEDII (P16-P18 FORENSICS) ================= -->
+                <!-- ================= 3. VIEW CONTROL MEDII (P16-P18 FORENSICS & ENDPOINT PROTECTION) ================= -->
                 <Grid x:Name="ViewMedii" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="240" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="200" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <GroupBox Grid.Row="0" Header="🔌 Medii Conectate în Timp Real (Live PnP Auto-Detectate: USB, SATA, CD-DVD, SD)" Style="{StaticResource TacticalGroupBoxStyle}">
+                    <!-- ENDPOINT PROTECTION & PORT POLICIES CONTROLLER -->
+                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="🛡️ SUITA ENDPOINT DEVICE CONTROL &amp; POLITICI PORTURI USB" FontWeight="Bold" FontSize="12" Foreground="{StaticResource CyberBlueBrush}" VerticalAlignment="Center" />
+                                    <Border x:Name="BadgePolicyStatus" Background="#064E3B" CornerRadius="4" Padding="6,2" Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtPolicyStatus" Text="POLITICĂ ACTIVĂ: WHITELIST STRICT" FontSize="10" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" />
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="RadPolicyWhitelist" Content="🛡️ Whitelist Strict (Doar Medii Înregistrate)" IsChecked="True" GroupName="GrpUsbPolicy" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                                    <RadioButton x:Name="RadPolicyReadOnly" Content="👁️ Mod Forțat Doar-Citire (WriteProtect)" GroupName="GrpUsbPolicy" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                                    <RadioButton x:Name="RadPolicyBlockAll" Content="🔒 Blocare Totală Porturi USB (USBSTOR)" GroupName="GrpUsbPolicy" Foreground="{StaticResource CrimsonDangerBrush}" Margin="0,0,16,0" VerticalAlignment="Center" />
+                                    <RadioButton x:Name="RadPolicyFullAccess" Content="🔓 Acces Complet" GroupName="GrpUsbPolicy" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="⚡ Aplică Politică Porturi" Height="36" Padding="14,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Margin="0,0,8,0" Click="OnApplyPortPolicyClick" />
+                                <Button Content="🔌 Ejectare Forțată Mediu" Height="36" Padding="12,0" Style="{StaticResource TacticalDangerButtonStyle}" Click="OnForceEjectMediaClick" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <GroupBox Grid.Row="1" Header="🔌 Medii Conectate în Timp Real (Live PnP &amp; Evaluare Endpoint Protection)" Style="{StaticResource TacticalGroupBoxStyle}">
                         <DataGrid x:Name="GridLiveMedia" Style="{StaticResource TacticalDataGridStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Volum" Binding="{Binding DriveLetter}" Width="80" FontWeight="Bold" />
-                                <DataGridTextColumn Header="Tip Mediu" Binding="{Binding MediaType}" Width="120" />
+                                <DataGridTextColumn Header="Tip Mediu" Binding="{Binding MediaType}" Width="110" />
                                 <DataGridTextColumn Header="Model Fabrică" Binding="{Binding Model}" Width="*" />
-                                <DataGridTextColumn Header="Identificator VID:PID" Binding="{Binding VendorId}" Width="140" />
-                                <DataGridTextColumn Header="Serie Hardware Firmware (S/N 🔒)" Binding="{Binding SerialNumber}" Width="180" FontFamily="Consolas, Cascadia Code" />
-                                <DataGridTextColumn Header="Capacitate" Binding="{Binding CapacityGb, StringFormat={}{0} GB}" Width="100" />
-                                <DataGridTemplateColumn Header="Acțiune" Width="180">
+                                <DataGridTextColumn Header="Identificator VID:PID" Binding="{Binding VendorId}" Width="120" />
+                                <DataGridTextColumn Header="Serie Hardware (S/N 🔒)" Binding="{Binding SerialNumber}" Width="160" FontFamily="Consolas, Cascadia Code" />
+                                <DataGridTextColumn Header="Capacitate" Binding="{Binding CapacityGb, StringFormat={}{0} GB}" Width="90" />
+                                <DataGridTemplateColumn Header="Acțiune" Width="160">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="⚡ Amprentează Mediu" Height="30" Padding="8,2" Margin="4" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnEnrollDetectedMediaClick" />
+                                            <Button Content="⚡ Amprentează Mediu" Height="28" Padding="6,2" Margin="3" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnEnrollDetectedMediaClick" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -355,7 +387,7 @@
                         </DataGrid>
                     </GroupBox>
 
-                    <GroupBox Grid.Row="1" Header="📋 Baza de Date a Mediilor de Stocare Amprentate (Device Control Whitelist)" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
+                    <GroupBox Grid.Row="2" Header="📋 Baza de Date a Mediilor de Stocare Amprentate (Device Control Whitelist)" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,10,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
