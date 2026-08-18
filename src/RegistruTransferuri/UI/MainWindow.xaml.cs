@@ -507,6 +507,34 @@ public partial class MainWindow : Window
         MessageBox.Show(msg, "Restricții Eliminate", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void OnRepairAndUnlockStorageClick(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(
+            "Sunteți pe cale să inițiați REPARAREA ȘI DEBLOCAREA COMPLETĂ a tuturor mediilor de stocare:\n\n" +
+            "1. Ștergerea fișierelor locale Group Policy (Registry.pol)\n" +
+            "2. Eliminarea politicilor RemovableStorageDevices & StorageDevicePolicies\n" +
+            "3. Curățarea atributelor Read-Only din Diskpart pe toate volumele\n" +
+            "4. Reactivarea Automount și rescanarea PnP\n\n" +
+            "Continuați?",
+            "Reparare & Deblocare Medii",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question
+        );
+
+        if (confirm != MessageBoxResult.Yes) return;
+
+        var (success, msg) = DevicePolicyEnforcer.RepairAndUnlockAllStorageDevices(_operator.FullName);
+        RefreshLiveMedia();
+
+        RadPolicyFullAccess.IsChecked = true;
+        TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: FĂRĂ RESTRICȚII (DEFAULT)";
+        TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("CyberBlueBrush");
+        BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0x23, 0x3C));
+
+        _db.AppendAudit("REPAIR_STORAGE_DEVICES", _operator.FullName, "Executat repararea și deblocarea completă a mediilor de stocare (curățat Registry.pol și Diskpart).");
+        MessageBox.Show(msg, "Reparare Finalizată", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void OnForceEjectMediaClick(object sender, RoutedEventArgs e)
     {
         if (GridLiveMedia.SelectedItem is not DetectedMedia med)

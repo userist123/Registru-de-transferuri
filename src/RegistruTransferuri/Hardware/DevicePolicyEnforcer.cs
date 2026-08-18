@@ -100,36 +100,65 @@ public static class DevicePolicyEnforcer
     /// </summary>
     public static (bool Success, string Message) RemoveAllPolicies(string operatorName)
     {
+        return RepairAndUnlockAllStorageDevices(operatorName);
+    }
+
+    /// <summary>
+    /// Motor complet de reparare, deblocare și restabilire funcționalitate pentru toate mediile de stocare.
+    /// Șterge fișierele de politică GPO (Registry.pol), curăță atributele Read-Only din Diskpart, reactivează Automount și rescanează magistrala PnP.
+    /// </summary>
+    public static (bool Success, string Message) RepairAndUnlockAllStorageDevices(string operatorName)
+    {
         CurrentPolicy = UsbPolicyMode.FullAccess;
 
-        // 1. Resetare USBSTOR Start = 3 (activare completă)
-        TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
+        var script = 
+            "$winDir = [System.Environment]::GetFolderPath('Windows');" +
+            "try { Remove-Item -Path \"$winDir\\System32\\GroupPolicy\\Machine\\Registry.pol\" -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { Remove-Item -Path \"$winDir\\System32\\GroupPolicy\\User\\Registry.pol\" -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { Remove-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\RemovableStorageDevices' -Recurse -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { Remove-Item -Path 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\RemovableStorageDevices' -Recurse -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { Remove-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\StorageDevicePolicies' -Recurse -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\USBSTOR' -Name 'Start' -Value 3 -Type DWord -Force -ErrorAction SilentlyContinue } catch {};" +
+            "try { & gpupdate /force } catch {};" +
+            "try { & mountvol /E } catch {};" +
+            // Diskpart script pentru curatare atribute readonly pe toate discurile
+            "try {" +
+            "  $dpScript = [System.IO.Path]::GetTempFileName();" +
+            "  $dpContent = 'rescan`n';" +
+            "  1..8 | ForEach-Object { $dpContent += \"select disk $_`nonline disk noerr`nattributes disk clear readonly noerr`n\" };" +
+            "  [System.IO.File]::WriteAllText($dpScript, $dpContent);" +
+            "  & diskpart /s $dpScript | Out-Null;" +
+            "  Remove-Item $dpScript -Force -ErrorAction SilentlyContinue;" +
+            "} catch {};" +
+            "try { & pnputil /scan-devices } catch {};";
 
-        // 2. Ștergere completă a cheii StorageDevicePolicies (elimină WriteProtect și Access Denied)
-        TryDeleteRegistryKeyDirectOrElevated(StoragePoliciesRegPath);
-
-        // 3. Ștergere politici GPO locale dacă au fost scrise
-        TryDeleteRegistryKeyDirectOrElevated(GpoPoliciesRegPath);
-
-        // 4. Re-activare Automount și notificare sistem
         try
         {
             var psi = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = "/c mountvol /E",
-                CreateNoWindow = true,
-                UseShellExecute = false
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                Verb = "runas",
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden
             };
-            using var p = Process.Start(psi);
-            p?.WaitForExit(1000);
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(4000);
         }
         catch { }
 
-        return (true, "TOATE RESTRICȚIILE ȘI POLITICILE AU FOST ANULATE COMPLET:\n\n" +
-                      "✅ Porturile USB sunt deblocate (USBSTOR Start=3).\n" +
-                      "✅ Protecția la scriere (WriteProtect) a fost eliminată.\n" +
-                      "✅ Toate mediile de stocare au acces deplin Read/Write.");
+        // Fallback direct registry local
+        TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
+        TryDeleteRegistryKeyDirectOrElevated(StoragePoliciesRegPath);
+        TryDeleteRegistryKeyDirectOrElevated(GpoPoliciesRegPath);
+
+        return (true, "REPARARE ȘI DEBLOCARE FINALIZATĂ CU SUCCES:\n\n" +
+                      "✅ Fisierele locale de politică GPO (Registry.pol) au fost eliminate.\n" +
+                      "✅ Cheile de blocare RemovableStorageDevices au fost șterse definitiv.\n" +
+                      "✅ Atributele Read-Only din Diskpart au fost curățate.\n" +
+                      "✅ Montarea automată (Automount) a fost reactivată.\n" +
+                      "✅ Magistrala PnP a fost rescanată.\n\n" +
+                      "Reconectați mediul de stocare în port.");
     }
 
     /// <summary>

@@ -361,9 +361,10 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="⚡ Aplică Politică" Height="36" Padding="12,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Margin="0,0,6,0" Click="OnApplyPortPolicyClick" />
-                                <Button Content="🔄 Elimină Toate Politicile" Height="36" Padding="12,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Margin="0,0,6,0" Click="OnRemoveAllPoliciesClick" ToolTip="Dezactivează toate restricțiile și readuce porturile la starea implicită" />
-                                <Button Content="🔌 Ejectare Forțată Mediu" Height="36" Padding="12,0" Style="{StaticResource TacticalDangerButtonStyle}" Click="OnForceEjectMediaClick" />
+                                <Button Content="⚡ Aplică Politică" Height="36" Padding="10,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Margin="0,0,5,0" Click="OnApplyPortPolicyClick" />
+                                <Button Content="🛠️ Reparare &amp; Deblocare Medii" Height="36" Padding="10,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Background="{StaticResource EmeraldSecurityBrush}" Margin="0,0,5,0" Click="OnRepairAndUnlockStorageClick" ToolTip="Șterge politicile GPO blocate, resetează atributele Read-Only și reactivează montarea automată" />
+                                <Button Content="🔄 Resetare Politici" Height="36" Padding="10,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Margin="0,0,5,0" Click="OnRemoveAllPoliciesClick" ToolTip="Dezactivează toate restricțiile și readuce porturile la starea implicită" />
+                                <Button Content="🔌 Ejectare" Height="36" Padding="10,0" Style="{StaticResource TacticalDangerButtonStyle}" Click="OnForceEjectMediaClick" />
                             </StackPanel>
                         </Grid>
                     </Border>
