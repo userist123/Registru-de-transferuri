@@ -1,15 +1,23 @@
 using System.IO;
 using System.Text;
 using System.Web;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using RegistruTransferuri.Models;
 
 namespace RegistruTransferuri.Services;
 
 /// <summary>
-/// Serviciu de generare rapoarte oficiale, Procese-Verbale HG 585/2002 si Certificate NIST SP 800-88r2.
+/// Serviciu de generare rapoarte oficiale, Procese-Verbale HG 585/2002 si Certificate NIST SP 800-88r2 in format HTML si PDF nativ.
 /// </summary>
 public sealed class PadesExportService
 {
+    static PadesExportService()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+    }
+
     public void ExportCsv(IEnumerable<TransferRecord> records, string filePath)
     {
         var sb = new StringBuilder();
@@ -19,6 +27,227 @@ public sealed class PadesExportService
             sb.AppendLine($"\"{r.RegistryNumber}\",\"{r.TransferDateUtc:yyyy-MM-dd HH:mm}\",\"{r.Classification.ToDisplayName()}\",\"{r.NatoClassification}\",\"{r.Direction}\",\"{r.SourceInstitution}\",\"{r.DestinationInstitution}\",\"{r.SourcePerson}\",\"{r.MediaType}\",\"{r.MediaSerialNumber}\",\"{r.PayloadFileName}\",\"{r.PayloadSha256Hash}\",\"{r.Signed}\",\"{r.FourEyesApproverName ?? "N/A"}\"");
         }
         File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+    }
+
+    public void GenerateProcesVerbalPdf(TransferRecord tx, string outputPath, string institutie = "MINISTERUL APĂRĂRII NAȚIONALE")
+    {
+        Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20, Unit.Millimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Segoe UI"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("ROMÂNIA").Bold().FontSize(10);
+                            c.Item().Text(institutie).Bold().FontSize(9);
+                            c.Item().Text($"UM: {tx.SourceInstitution}").FontSize(8);
+                        });
+                        row.RelativeItem().AlignRight().Column(c =>
+                        {
+                            c.Item().Text("EXEMPLARUL NR. 1").Bold().FontSize(8);
+                            c.Item().Text($"Nr. Înreg: {tx.RegistryNumber}").Bold().FontSize(10).FontColor(Colors.Red.Medium);
+                            c.Item().Text($"Data: {tx.TransferDateUtc:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                        });
+                    });
+
+                    col.Item().PaddingTop(8).Background(Colors.Grey.Darken3).Padding(4).AlignCenter()
+                        .Text($"NIVEL CLASIFICARE: {tx.Classification.ToDisplayName().ToUpperInvariant()} • NATO: {tx.NatoClassification}")
+                        .Bold().FontColor(Colors.White).FontSize(10);
+
+                    col.Item().PaddingTop(8).AlignCenter().Text("PROCES-VERBAL DE PREDARE-PRIMIRE A SUPORTURILOR DE DATE").Bold().FontSize(12);
+                    col.Item().AlignCenter().Text("Încheiat conform HG 585/2002 Art. 65-72, Legea 182/2002 și NATO AC/35-D/1022").Italic().FontSize(8).FontColor(Colors.Grey.Medium);
+                });
+
+                page.Content().PaddingTop(10).Column(col =>
+                {
+                    col.Item().Text("1. Date Generale & Entități Implicate").Bold().FontSize(10);
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(160);
+                            cols.RelativeColumn();
+                        });
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Unitate Expeditoare (Sursă):").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.SourceInstitution} (Stație: {tx.SourceStationHost})").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Unitate Destinatară:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.DestinationInstitution} (Stație: {tx.DestinationStationHost ?? "N/A"})").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Responsabil Transfer:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.SourcePerson} ({tx.SourcePersonRole})").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Curier Militar / Delegat:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.CourierName ?? "Predare Directă"} (Permis: {tx.CourierPermitNumber ?? "N/A"})").FontSize(9);
+                    });
+
+                    col.Item().PaddingTop(8).Text("2. Identificare Suport Fizic (Device Control Whitelist)").Bold().FontSize(10);
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(160);
+                            cols.RelativeColumn();
+                        });
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Tip Suport / Mediu:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.MediaType} — Denumire: {tx.MediaFriendlyLabel ?? tx.MediaSerialNumber}").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Serie Hardware Firmware (S/N):").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text(tx.MediaSerialNumber).FontFamily("Consolas").Bold().FontSize(9);
+                    });
+
+                    col.Item().PaddingTop(8).Text("3. Pachet Date & Integritate Criptografică SHA-256").Bold().FontSize(10);
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(160);
+                            cols.RelativeColumn();
+                        });
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Fișier / Pachet Transferat:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.PayloadFileName} ({tx.PayloadSizeGb:F2} GB)").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Hash SHA-256 Bit-cu-Bit:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text(tx.PayloadSha256Hash).FontFamily("Consolas").FontSize(8);
+                    });
+
+                    col.Item().PaddingTop(8).Text("4. Temei Legal & Autorizare Duală (Four-Eyes)").Bold().FontSize(10);
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(160);
+                            cols.RelativeColumn();
+                        });
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Bază Legală:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text("HG 585/2002 Art. 60-73, Legea 182/2002, NATO AC/35-D/1022").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Aprobator 4-Ochi:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{tx.FourEyesApproverName ?? "N/A"} ({tx.FourEyesApproverRole ?? "Ofițer Securitate"})").FontSize(9);
+                    });
+
+                    col.Item().PaddingTop(16).Row(row =>
+                    {
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Medium).Padding(6).Column(c =>
+                        {
+                            c.Item().Text("AM PREDAT (EXPEDITOR):").Bold().FontSize(8);
+                            c.Item().PaddingTop(4).Text($"Nume: {tx.SourcePerson}").FontSize(8);
+                            c.Item().PaddingTop(14).Text("Semnătură: ___________________").FontSize(8);
+                        });
+
+                        row.ConstantItem(10);
+
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Medium).Padding(6).Column(c =>
+                        {
+                            c.Item().Text("AM PRIMIT (DESTINATAR):").Bold().FontSize(8);
+                            c.Item().PaddingTop(4).Text($"Nume: {tx.DestinationPerson}").FontSize(8);
+                            c.Item().PaddingTop(14).Text("Semnătură: ___________________").FontSize(8);
+                        });
+
+                        row.ConstantItem(10);
+
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Medium).Padding(6).Column(c =>
+                        {
+                            c.Item().Text("MARTOR 4-EYES INFOSEC:").Bold().FontSize(8);
+                            c.Item().PaddingTop(4).Text($"Nume: {tx.FourEyesApproverName ?? "Ofițer Securitate"}").FontSize(8);
+                            c.Item().PaddingTop(14).Text("Semnătură: ___________________").FontSize(8);
+                        });
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Document Militar Oficial — Generat automat de Registrul de Transferuri Air-Gapped").FontSize(7).FontColor(Colors.Grey.Medium);
+                });
+            });
+        }).GeneratePdf(outputPath);
+    }
+
+    public void GenerateSanitizationCertificatePdf(MediaAsset med, string operatorExecutant, string martor, string certNumber, string metoda, string outputPath)
+    {
+        Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20, Unit.Millimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Segoe UI"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().AlignCenter().Text("MINISTERUL APĂRĂRII NAȚIONALE").Bold().FontSize(14);
+                    col.Item().AlignCenter().Text("CERTIFICAT DE SANITIZARE & DECOMISIONARE SUPORT MEMORIE").Bold().FontSize(12);
+                    col.Item().AlignCenter().Text("Conform Standardului NIST SP 800-88 Rev. 2 (2025), IEEE 2883-2022 și HG 585/2002 Art. 65").Italic().FontSize(8).FontColor(Colors.Grey.Medium);
+                    col.Item().PaddingTop(6).LineHorizontal(1.5f).LineColor(Colors.Black);
+                });
+
+                page.Content().PaddingTop(12).Column(col =>
+                {
+                    col.Item().Text($"Certificat Nr: {certNumber}").Bold().FontSize(11).FontColor(Colors.Red.Medium);
+                    col.Item().PaddingTop(4).Text("Prin prezentul document se atestă că mediul de stocare de mai jos a fost supus procedurii de igienizare criptografică sigură a datelor, fără posibilitate de recuperare:").FontSize(9);
+
+                    col.Item().PaddingTop(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(160);
+                            cols.RelativeColumn();
+                        });
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Cod Evidență / Volum:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{med.InventoryCode} ({med.FriendlyName})").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Tip Suport & Capacitate:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{med.MediaType} ({med.CapacityGb} GB)").FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Serie Hardware Firmware:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text(med.SerialNumber).FontFamily("Consolas").Bold().FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Metodă Sanitizare:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text(metoda).Bold().FontSize(9);
+
+                        table.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Data & Ora Execuției:").Bold().FontSize(9);
+                        table.Cell().Padding(4).Text($"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC").FontSize(9);
+                    });
+
+                    col.Item().PaddingTop(12).Background(Colors.Grey.Lighten4).Padding(6).Text("Rezultat Verificare: S-a constatat absența oricăror date reziduale recuperabile. Cheile MEK au fost distruse, iar mediul a fost trecut în starea BLOCAT / IGIENIZAT.").Italic().FontSize(8);
+
+                    col.Item().PaddingTop(24).Row(row =>
+                    {
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Medium).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("OPERATOR EXECUTANT:").Bold().FontSize(8);
+                            c.Item().PaddingTop(4).Text($"Nume: {operatorExecutant}").FontSize(8);
+                            c.Item().PaddingTop(20).Text("Semnătură: ___________________").FontSize(8);
+                        });
+
+                        row.ConstantItem(20);
+
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Medium).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("MARTOR / OFIȚER SECURITATE (4-EYES):").Bold().FontSize(8);
+                            c.Item().PaddingTop(4).Text($"Nume: {martor}").FontSize(8);
+                            c.Item().PaddingTop(20).Text("Semnătură & Ștampilă: ___________________").FontSize(8);
+                        });
+                    });
+                });
+
+                page.Footer().AlignCenter().Text("Document Militar Oficial — Distrugere Garantată Date Clasificate").FontSize(7).FontColor(Colors.Grey.Medium);
+            });
+        }).GeneratePdf(outputPath);
     }
 
     public string GenerateProcesVerbalHtml(TransferRecord tx, string institutie = "MINISTERUL APĂRĂRII NAȚIONALE")

@@ -312,12 +312,21 @@ public partial class MainWindow : Window
         var ofd = new OpenFileDialog { Title = "Selectați Fișierul / Pachetul pentru Transfer Militar" };
         if (ofd.ShowDialog() == true)
         {
-            // Inspecție DLP Magic Bytes
+            // 1. Inspecție DLP Magic Bytes
             var dlp = PayloadDlpInspector.InspectFile(ofd.FileName);
             if (!dlp.IsSafe)
             {
                 MessageBox.Show($"BLOCARE DLP CONFORM SECOPS:\n{dlp.Details}", "Fișier Interzis", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
+            }
+
+            // 2. Scanare Euristică DFIR / YARA Offline
+            var dfir = YaraDfirScanner.ScanFile(ofd.FileName);
+            if (!dfir.IsClean)
+            {
+                var warnMsg = $"⚠️ ALERTĂ DE SECURITATE DFIR LA SCANAREA PACHETULUI:\n\n{string.Join("\n", dfir.Detections)}\n\nDoriți să continuați înregistrarea acestui transfer?";
+                var warnRes = MessageBox.Show(warnMsg, "Avertisment Securitate Date", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (warnRes != MessageBoxResult.Yes) return;
             }
 
             TxtPayloadPath.Text = ofd.FileName;

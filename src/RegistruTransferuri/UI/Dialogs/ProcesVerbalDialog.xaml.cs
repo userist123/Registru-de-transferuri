@@ -10,14 +10,35 @@ public partial class ProcesVerbalDialog : Window
 {
     private readonly TransferRecord _tx;
     private readonly string _htmlContent;
+    private readonly PadesExportService _exporter = new();
 
     public ProcesVerbalDialog(TransferRecord tx)
     {
         InitializeComponent();
         _tx = tx;
-        var exporter = new PadesExportService();
-        _htmlContent = exporter.GenerateProcesVerbalHtml(_tx);
+        _htmlContent = _exporter.GenerateProcesVerbalHtml(_tx);
         BrowserPreview.NavigateToString(_htmlContent);
+    }
+
+    private void OnExportPdfClick(object sender, RoutedEventArgs e)
+    {
+        var sfd = new SaveFileDialog
+        {
+            Filter = "Document PDF (*.pdf)|*.pdf",
+            FileName = $"Proces_Verbal_{_tx.RegistryNumber.Replace('/', '_').Replace('-', '_')}.pdf"
+        };
+        if (sfd.ShowDialog() == true)
+        {
+            try
+            {
+                _exporter.GenerateProcesVerbalPdf(_tx, sfd.FileName);
+                MessageBox.Show($"Procesul-Verbal a fost generat și salvat cu succes în format PDF nativ:\n{sfd.FileName}", "Export PDF Reușit", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Eroare la generarea PDF: {ex.Message}", "Eroare Export", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     private void OnSaveHtmlClick(object sender, RoutedEventArgs e)

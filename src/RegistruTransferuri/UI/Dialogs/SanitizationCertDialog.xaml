@@ -15,7 +15,8 @@
         <WebBrowser x:Name="BrowserPreview" Grid.Row="0" Margin="0,0,0,12" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="💾 Salvează Certificat HTML" Width="190" Height="34" Margin="0,0,10,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnSaveClick" />
+            <Button Content="📥 Export PDF Nativ" Width="160" Height="34" Margin="0,0,10,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnExportPdfClick" />
+            <Button Content="💾 Salvează HTML" Width="140" Height="34" Margin="0,0,10,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnSaveHtmlClick" />
             <Button Content="Închide" Width="100" Height="34" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnCloseClick" />
         </StackPanel>
     </Grid>
