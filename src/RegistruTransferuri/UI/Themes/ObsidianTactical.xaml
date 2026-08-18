@@ -6,6 +6,7 @@
     <Color x:Key="BgDeepColor">#080C14</Color>
     <Color x:Key="BgBaseColor">#0D1322</Color>
     <Color x:Key="BgCardColor">#121A2D</Color>
+    <Color x:Key="BgSurfaceColor">#121A2D</Color>
     <Color x:Key="BgElevatedColor">#18233C</Color>
     <Color x:Key="BgHighlightColor">#223254</Color>
 
@@ -35,6 +36,7 @@
     <SolidColorBrush x:Key="BgDeepBrush" Color="{StaticResource BgDeepColor}" />
     <SolidColorBrush x:Key="BgBaseBrush" Color="{StaticResource BgBaseColor}" />
     <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCardColor}" />
+    <SolidColorBrush x:Key="BgSurfaceBrush" Color="{StaticResource BgSurfaceColor}" />
     <SolidColorBrush x:Key="BgElevatedBrush" Color="{StaticResource BgElevatedColor}" />
     <SolidColorBrush x:Key="BgHighlightBrush" Color="{StaticResource BgHighlightColor}" />
 
