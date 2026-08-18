@@ -6,7 +6,8 @@ using RegistruTransferuri.Security;
 namespace RegistruTransferuri.UI;
 
 /// <summary>
-/// Punct de intrare pentru aplicația C# WPF v5.0 Tactical Command Design.
+/// Punct de intrare pentru aplicația C# WPF v5.4 Tactical Command Design.
+/// Conține protecție globală împotriva închiderii neașteptate (Global Crash Prevention).
 /// </summary>
 public partial class App : Application
 {
@@ -15,6 +16,27 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Previne crash-urile neașteptate prin captarea globală a tuturor excepțiilor UI
+        DispatcherUnhandledException += (s, args) =>
+        {
+            MessageBox.Show(
+                $"Avertisment de execuție:\n{args.Exception.Message}",
+                "Notificare Sistem",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning
+            );
+            args.Handled = true; // Previne oprirea/crash-ul aplicației!
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                MessageBox.Show($"Excepție proces: {ex.Message}", "Eroare Sistem", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        };
+
         // Previne oprirea automata a aplicatiei la inchiderea dialogului LoginWindow
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

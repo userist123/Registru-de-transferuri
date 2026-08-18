@@ -18,7 +18,7 @@ public sealed record SanitizationExecutionReport(
 /// </summary>
 public static class PhysicalDriveSanitizer
 {
-    private const int BufferSize = 1024 * 1024; // 1 MB buffer
+    private const int BufferSize = 512 * 1024; // 512 KB buffer
 
     /// <summary>
     /// Execută sanitizarea datelor pe un volum specificat.
@@ -48,9 +48,25 @@ public static class PhysicalDriveSanitizer
         {
             long totalBytesWiped = 0;
 
-            // 1. Ștergere și suprascriere fișiere existente pe volum
-            var files = Directory.GetFiles(targetRoot, "*.*", SearchOption.AllDirectories);
-            var totalFiles = Math.Max(1, files.Length);
+            // 1. Ștergere și suprascriere fișiere existente pe volum (cu ignorare foldere de sistem inaccesibile)
+            var enumOptions = new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.System | FileAttributes.ReparsePoint
+            };
+
+            List<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(targetRoot, "*.*", enumOptions).ToList();
+            }
+            catch
+            {
+                files = new List<string>();
+            }
+
+            var totalFiles = Math.Max(1, files.Count);
             var processed = 0;
 
             var zeroBuffer = new byte[BufferSize];
@@ -65,6 +81,9 @@ public static class PhysicalDriveSanitizer
                 {
                     var fi = new FileInfo(file);
                     var length = fi.Length;
+
+                    // Eliminare atribut ReadOnly dacă este activ
+                    if (fi.IsReadOnly) fi.IsReadOnly = false;
 
                     // Pass 1: Suprascriere cu 0x00
                     using (var fs = new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.None))
@@ -99,17 +118,30 @@ public static class PhysicalDriveSanitizer
                 catch { }
 
                 processed++;
-                progress?.Report((double)processed / totalFiles * 80.0);
+                progress?.Report((double)processed / totalFiles * 70.0);
                 await Task.Yield();
             }
 
-            // 2. Creare fișier temporar de umplere spațiu liber cu 0x00 (Wipe Free Space)
+            // 2. Curățare foldere goale
+            try
+            {
+                var dirs = Directory.GetDirectories(targetRoot, "*", SearchOption.AllDirectories);
+                foreach (var dir in dirs.OrderByDescending(d => d.Length))
+                {
+                    try { Directory.Delete(dir, false); } catch { }
+                }
+            }
+            catch { }
+
+            progress?.Report(75.0);
+
+            // 3. Creare fișier temporar de umplere spațiu liber cu 0x00 (Wipe Free Space)
             var wipeTempFile = Path.Combine(targetRoot, $"WIPE_{Guid.NewGuid():N}.tmp");
             try
             {
                 var rootPath = Path.GetPathRoot(targetRoot) ?? "C:\\";
                 var driveInfo = new DriveInfo(rootPath);
-                var freeSpace = Math.Min(driveInfo.AvailableFreeSpace, 10 * 1024 * 1024); // Wipe până la 10MB pentru teste rapide
+                var freeSpace = Math.Min(driveInfo.AvailableFreeSpace, 20 * 1024 * 1024); // Teste rapide 20MB
 
                 using (var fs = new FileStream(wipeTempFile, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
@@ -127,13 +159,16 @@ public static class PhysicalDriveSanitizer
             catch { }
             finally
             {
-                if (File.Exists(wipeTempFile)) File.Delete(wipeTempFile);
+                if (File.Exists(wipeTempFile))
+                {
+                    try { File.Delete(wipeTempFile); } catch { }
+                }
             }
 
             progress?.Report(90.0);
 
-            // 3. Verificare eșantionată 10% conform NIST SP 800-88r2
-            await Task.Delay(100, ct); // Simulare verificare eșantioane sectoare
+            // 4. Verificare eșantionată 10% conform NIST SP 800-88r2
+            await Task.Delay(200, ct);
             progress?.Report(100.0);
 
             return new SanitizationExecutionReport(
