@@ -236,7 +236,20 @@ public static class DevicePolicyEnforcer
             };
             using var proc = Process.Start(psi);
             proc?.WaitForExit(1500);
-            return proc?.ExitCode == 0;
+            if (proc?.ExitCode == 0) return true;
+
+            // Fallback UAC Elevation
+            var elevatedPsi = new ProcessStartInfo
+            {
+                FileName = "reg.exe",
+                Arguments = $"add \"{fullKey}\" /v \"{valueName}\" /t {type} /d {value} /f",
+                Verb = "runas",
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            using var elevatedProc = Process.Start(elevatedPsi);
+            elevatedProc?.WaitForExit(2500);
+            return elevatedProc?.ExitCode == 0;
         }
         catch
         {
@@ -265,7 +278,20 @@ public static class DevicePolicyEnforcer
             };
             using var proc = Process.Start(psi);
             proc?.WaitForExit(1500);
-            return proc?.ExitCode == 0;
+            if (proc?.ExitCode == 0) return true;
+
+            // Fallback UAC Elevation
+            var elevatedPsi = new ProcessStartInfo
+            {
+                FileName = "reg.exe",
+                Arguments = $"delete \"{fullKey}\" /f",
+                Verb = "runas",
+                UseShellExecute = true,
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            using var elevatedProc = Process.Start(elevatedPsi);
+            elevatedProc?.WaitForExit(2500);
+            return elevatedProc?.ExitCode == 0;
         }
         catch
         {
