@@ -600,13 +600,40 @@ public partial class MainWindow : Window
         if (confirm != MessageBoxResult.Yes) return;
 
         var witness = Microsoft.VisualBasic.Interaction.InputBox("Introduceți numele ofițerului de securitate / martorului verificator:", "Martor Sanitizare NIST SP 800-88r2", "Ofițer Securitate INFOSEC");
-        if (!string.IsNullOrWhiteSpace(witness))
+        if (string.IsNullOrWhiteSpace(witness)) return;
+
+        // Determinare litera de unitate conectată
+        var detected = _detectedMedia.FirstOrDefault(d => d.SerialNumber == med.SerialNumber);
+        var driveLetter = detected?.DriveLetter;
+        if (string.IsNullOrWhiteSpace(driveLetter))
+        {
+            driveLetter = Microsoft.VisualBasic.Interaction.InputBox("Introduceți litera de unitate a stick-ului USB conectat (ex: E: sau E:\\):", "Selectare Unitate Fizică pentru Suprascriere NIST", "E:");
+        }
+
+        if (string.IsNullOrWhiteSpace(driveLetter))
+        {
+            MessageBox.Show("Sanitizarea a fost anulată: Nu a fost specificată o unitate de stocare validă.", "Anulare", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // Execuție activă fizică NIST SP 800-88r2 cu dialog de progres live
+        var progressDlg = new SanitizeProgressDialog(driveLetter.Trim(), med, SanitizationMethod.Clear) { Owner = this };
+        var ok = progressDlg.ShowDialog();
+
+        if (ok == true)
         {
             var certNr = _db.SanitizeMedia(med.Id, 2, _operator.FullName, witness.Trim());
             LoadMediaWhitelist();
+            RefreshLiveMedia();
 
-            var certDlg = new SanitizationCertDialog(med, _operator.FullName, witness.Trim(), certNr, "Purge (Cryptographic Erase / Multi-Pass NIST 800-88r2)") { Owner = this };
+            _db.AppendAudit("SANITIZE_EXECUTE_NIST", _operator.FullName, $"Executat activ sanitizare NIST SP 800-88r2 pe unitatea {driveLetter} (S/N: {med.SerialNumber}). Certificat: {certNr}");
+
+            var certDlg = new SanitizationCertDialog(med, _operator.FullName, witness.Trim(), certNr, "Clear & Purge (Multi-Pass Overwrite NIST SP 800-88r2)") { Owner = this };
             certDlg.ShowDialog();
+        }
+        else
+        {
+            MessageBox.Show("Procedura de sanitizare a fost întreruptă sau a eșuat.", "Sanitizare Necompletată", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
