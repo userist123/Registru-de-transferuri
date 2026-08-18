@@ -351,4 +351,12 @@ public class SecurityTests
         Assert.True(test3.Success);
         Assert.Equal(ClassificationLevel.StrictSecretDeImportantaDeosebita, test3.SuggestedClassification);
     }
+
+    [Fact]
+    public void DevicePolicyEnforcer_RemoveAllPolicies_RestoresFullAccess()
+    {
+        var res = DevicePolicyEnforcer.RemoveAllPolicies("TestAdmin");
+        Assert.True(res.Success);
+        Assert.Equal(UsbPolicyMode.FullAccess, DevicePolicyEnforcer.CurrentPolicy);
+    }
 }

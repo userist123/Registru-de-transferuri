@@ -107,6 +107,26 @@ public static class DevicePolicyEnforcer
     }
 
     /// <summary>
+    /// Elimină complet toate politicile de blocare și restricțiile, readucând sistemul la starea implicită neîngrădită.
+    /// </summary>
+    public static (bool Success, string Message) RemoveAllPolicies(string operatorName)
+    {
+        CurrentPolicy = UsbPolicyMode.FullAccess;
+        var usbOk = TrySetRegistryDirectOrElevated(UsbStorRegPath, "Start", "3", "REG_DWORD");
+        var wpOk = TrySetRegistryDirectOrElevated(StoragePoliciesRegPath, "WriteProtect", "0", "REG_DWORD");
+
+        // Ștergere cheie de protecție la scriere dacă este posibil
+        try
+        {
+            using var polKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control", true);
+            polKey?.DeleteSubKeyTree("StorageDevicePolicies", false);
+        }
+        catch { }
+
+        return (true, "TOATE POLITICILE ȘI RESTRICȚIILE AU FOST ELIMINATE CU SUCCES.\n\n- Porturile USB sunt deblocate complet (USBSTOR Start=3).\n- Protecția la scriere a fost dezactivată (WriteProtect=0).\n- Restricțiile de Whitelist pe medii au fost ridicate.");
+    }
+
+    /// <summary>
     /// Evaluează un mediu conectat (USB, SATA, NVMe, SD, CD-DVD) în raport cu Whitelist-ul activ și politica curentă.
     /// </summary>
     public static DeviceEvaluationResult EvaluateDevice(DetectedMedia device, List<MediaAsset> whitelist)

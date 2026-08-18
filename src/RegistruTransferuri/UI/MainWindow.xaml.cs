@@ -484,6 +484,28 @@ public partial class MainWindow : Window
         MessageBox.Show(msg, "Endpoint Device Control", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    private void OnRemoveAllPoliciesClick(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(
+            "Sunteți sigur că doriți să ELIMINAȚI TOATE POLITICILE și restricțiile de porturi?\n\n" +
+            "- Porturile USB vor fi deblocate complet.\n" +
+            "- Protecția WriteProtect va fi dezactivată.\n" +
+            "- Toate mediile conectate vor avea acces neîngrădit.",
+            "Confirmare Eliminare Politici", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+        if (confirm != MessageBoxResult.Yes) return;
+
+        var (success, msg) = DevicePolicyEnforcer.RemoveAllPolicies(_operator.FullName);
+
+        RadPolicyFullAccess.IsChecked = true;
+        TxtPolicyStatus.Text = "POLITICĂ ACTIVĂ: FĂRĂ RESTRICȚII (DEFAULT)";
+        TxtPolicyStatus.Foreground = (System.Windows.Media.Brush)FindResource("CyberBlueBrush");
+        BadgePolicyStatus.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x18, 0x23, 0x3C));
+
+        _db.AppendAudit("REMOVE_ALL_POLICIES", _operator.FullName, "Eliminat toate politicile de blocare/restricții de pe porturi și medii de stocare.");
+        MessageBox.Show(msg, "Restricții Eliminate", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void OnForceEjectMediaClick(object sender, RoutedEventArgs e)
     {
         if (GridLiveMedia.SelectedItem is not DetectedMedia med)
