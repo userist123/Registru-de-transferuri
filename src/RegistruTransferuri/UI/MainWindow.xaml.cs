@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
@@ -706,6 +707,36 @@ public partial class MainWindow : Window
             $"3. CONFORMITATE PRINCIPIUL CELOR 4 OCHI & AUDIT:\r\n" +
             $"   • Transferuri Aprobate Dual (Four-Eyes): {_transfers.Count(t => !string.IsNullOrEmpty(t.FourEyesApproverName))}\r\n" +
             $"   • Transferuri Semnate Formal cu PIN: {_transfers.Count(t => t.Signed)}\r\n";
+    }
+
+    private void OnExportOfficialStatsPdfClick(object sender, RoutedEventArgs e)
+    {
+        var sfd = new SaveFileDialog
+        {
+            Title = "Salvare Raport Oficial de Conformitate (PDF)",
+            Filter = "Document PDF (*.pdf)|*.pdf",
+            FileName = $"Raport_Conformitate_INFOSEC_{DateTime.Now:yyyyMMdd_HHmm}.pdf"
+        };
+
+        if (sfd.ShowDialog() == true)
+        {
+            try
+            {
+                var exporter = new PadesExportService();
+                exporter.GenerateActivityReportPdf(_transfers, _mediaAssets, sfd.FileName);
+                _db.AppendAudit("EXPORT_COMPLIANCE_REPORT_PDF", _operator.FullName, $"Generat raport oficial de conformitate PDF: {Path.GetFileName(sfd.FileName)}");
+
+                var open = MessageBox.Show($"Raportul oficial a fost generat cu succes!\nLocație: {sfd.FileName}\n\nDoriți să deschideți fișierul?", "Raport Generat", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (open == MessageBoxResult.Yes)
+                {
+                    Process.Start(new ProcessStartInfo(sfd.FileName) { UseShellExecute = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Eroare la generarea raportului: {ex.Message}", "Eroare Export", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 
     // ================= SARCINA 5: AUDIT LOG & BLOCKCHAIN VERIFIER =================

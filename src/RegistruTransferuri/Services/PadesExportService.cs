@@ -439,4 +439,132 @@ table.grid th {{ background-color: #f3f4f6; text-align: left; width: 35%; }}
 </div>
 </body></html>";
     }
+
+    public void GenerateActivityReportPdf(IEnumerable<TransferRecord> transfers, IEnumerable<MediaAsset> assets, string outputPath, string institutie = "MINISTERUL APĂRĂRII NAȚIONALE")
+    {
+        var txList = transfers.ToList();
+        var assetList = assets.ToList();
+        var totalTx = txList.Count;
+        var classifiedTx = txList.Count(t => t.Classification >= ClassificationLevel.Secret);
+        var totalAssets = assetList.Count;
+        var sanitizedAssets = assetList.Count(a => a.Status == MediaStatus.Sanitizat || a.Status == MediaStatus.Distrus);
+
+        Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20, Unit.Millimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Segoe UI"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("ROMÂNIA").Bold().FontSize(11);
+                            c.Item().Text(institutie).Bold().FontSize(10);
+                            c.Item().Text("STRUCTURA DE SECURITATE INFOSEC").FontSize(8);
+                        });
+                        row.RelativeItem().AlignRight().Column(c =>
+                        {
+                            c.Item().Text("RAPORT DE CONFORMITATE").Bold().FontSize(9);
+                            c.Item().Text($"Data: {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC").FontSize(8);
+                            c.Item().Text("REGIM AIR-GAPPED").Bold().FontColor(Colors.Blue.Medium).FontSize(8);
+                        });
+                    });
+
+                    col.Item().PaddingTop(10).LineHorizontal(1.5f).LineColor(Colors.Black);
+                });
+
+                page.Content().PaddingTop(15).Column(col =>
+                {
+                    col.Item().AlignCenter().Text("RAPORT SINTETIC PRIVIND TRANSFERURILE DE DATE ȘI CONTROLUL DISPOZITIVELOR").Bold().FontSize(13);
+                    col.Item().AlignCenter().Text("Conform HG 585/2002, NATO AC/35-D/1022 și NIST SP 800-88r2").FontSize(9).FontColor(Colors.Grey.Medium);
+
+                    col.Item().PaddingTop(15).Row(row =>
+                    {
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("TOTAL TRANSFERURI").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            c.Item().Text($"{totalTx}").Bold().FontSize(18).FontColor(Colors.Blue.Darken2);
+                        });
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("TRANSFERURI CLASIFICATE (S/SS/SSID)").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            c.Item().Text($"{classifiedTx}").Bold().FontSize(18).FontColor(Colors.Red.Darken2);
+                        });
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("MEDII AMPRENTATE ÎN WHITELIST").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            c.Item().Text($"{totalAssets}").Bold().FontSize(18).FontColor(Colors.Green.Darken2);
+                        });
+                        row.RelativeItem().Border(1).BorderColor(Colors.Grey.Lighten1).Padding(8).Column(c =>
+                        {
+                            c.Item().Text("MEDII SANITIZATE / DISTRUSE").Bold().FontSize(8).FontColor(Colors.Grey.Darken1);
+                            c.Item().Text($"{sanitizedAssets}").Bold().FontSize(18).FontColor(Colors.Orange.Darken2);
+                        });
+                    });
+
+                    col.Item().PaddingTop(20).Text("1. Ultimele Transferuri Înregistrate").Bold().FontSize(11);
+
+                    col.Item().PaddingTop(6).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(3);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Nr. Înregistrare").Bold().FontSize(8);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Dată UTC").Bold().FontSize(8);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Clasificare").Bold().FontSize(8);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Destinație").Bold().FontSize(8);
+                            header.Cell().Background(Colors.Grey.Lighten3).Padding(4).Text("Fișier").Bold().FontSize(8);
+                        });
+
+                        foreach (var tx in txList.Take(10))
+                        {
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(tx.RegistryNumber).FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(tx.TransferDateUtc.ToString("yyyy-MM-dd HH:mm")).FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(tx.Classification.ToDisplayName()).FontSize(8).Bold();
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(tx.DestinationInstitution).FontSize(8);
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(tx.PayloadFileName).FontSize(8);
+                        }
+                    });
+
+                    col.Item().PaddingTop(25).Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("ÎNTOCMIT").Bold().FontSize(9);
+                            c.Item().Text("Ofițer Securitate INFOSEC").FontSize(8);
+                            c.Item().PaddingTop(20).Text("_____________________").FontSize(8);
+                        });
+                        row.RelativeItem().AlignRight().Column(c =>
+                        {
+                            c.Item().Text("VIZAT / APROBAT").Bold().FontSize(9);
+                            c.Item().Text("Șef Structură Securitate").FontSize(8);
+                            c.Item().PaddingTop(20).Text("_____________________").FontSize(8);
+                        });
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Document de uz intern militar — Generat automat din Registrul de Transferuri | Pagina ");
+                    t.CurrentPageNumber();
+                    t.Span(" din ");
+                    t.TotalPages();
+                });
+            });
+        }).GeneratePdf(outputPath);
+    }
 }

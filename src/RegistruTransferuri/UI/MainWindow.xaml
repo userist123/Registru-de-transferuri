@@ -525,7 +525,16 @@
                             </Grid>
 
                             <GroupBox Header="📜 Raport Sintetic de Conformitate INFOSEC &amp; Registru Militar" Style="{StaticResource TacticalGroupBoxStyle}" MinHeight="420">
-                                <TextBox x:Name="TxtStatsReport" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="12" MinHeight="360" />
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button Content="📥 Export Raport Oficial Conformitate (PDF Nativ)" Height="36" Padding="14,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnExportOfficialStatsPdfClick" />
+                                    </StackPanel>
+                                    <TextBox Grid.Row="1" x:Name="TxtStatsReport" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="12" MinHeight="340" />
+                                </Grid>
                             </GroupBox>
                         </StackPanel>
                     </ScrollViewer>

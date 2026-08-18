@@ -399,4 +399,72 @@ public class SecurityTests
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
         }
     }
+
+    [Fact]
+    public void PadesExportService_GeneratesOfficialActivityReportPdf()
+    {
+        var exporter = new PadesExportService();
+        var tempPdf = Path.Combine(Path.GetTempPath(), "test_activity_report.pdf");
+
+        try
+        {
+            var txList = new List<TransferRecord>
+            {
+                new TransferRecord
+                {
+                    RegistryNumber = "MAPN-2026-S-0001",
+                    Classification = ClassificationLevel.Secret,
+                    TransferDateUtc = DateTime.UtcNow,
+                    SourceInstitution = "MApN / Securitate",
+                    DestinationInstitution = "Statul Major",
+                    PayloadFileName = "Pachet.zip"
+                }
+            };
+            var assetList = new List<MediaAsset>
+            {
+                new MediaAsset
+                {
+                    FriendlyName = "Stick Operativ",
+                    MediaType = "Stick USB",
+                    SerialNumber = "SN-001",
+                    Status = MediaStatus.AutorizatRw
+                }
+            };
+
+            exporter.GenerateActivityReportPdf(txList, assetList, tempPdf);
+            Assert.True(File.Exists(tempPdf));
+            Assert.True(new FileInfo(tempPdf).Length > 1000);
+        }
+        finally
+        {
+            if (File.Exists(tempPdf)) File.Delete(tempPdf);
+        }
+    }
+
+    [Fact]
+    public void ArchiveMetadataExtractor_InspectsZipFiles_And_FlagsSuspiciousBinaries()
+    {
+        var tempZip = Path.Combine(Path.GetTempPath(), "test_archive.zip");
+        try
+        {
+            using (var zip = System.IO.Compression.ZipFile.Open(tempZip, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                var entry1 = zip.CreateEntry("document.pdf");
+                using (var writer = new StreamWriter(entry1.Open())) writer.WriteLine("Clean PDF text");
+
+                var entry2 = zip.CreateEntry("payload.ps1");
+                using (var writer = new StreamWriter(entry2.Open())) writer.WriteLine("Write-Host 'test'");
+            }
+
+            var inspect = ArchiveMetadataExtractor.InspectArchive(tempZip);
+            Assert.True(inspect.IsArchive);
+            Assert.Equal(2, inspect.TotalFiles);
+            Assert.Contains(inspect.Entries, e => e.IsSuspicious && e.RelativePath == "payload.ps1");
+            Assert.Contains(inspect.SecurityWarnings, w => w.Contains("payload.ps1"));
+        }
+        finally
+        {
+            if (File.Exists(tempZip)) File.Delete(tempZip);
+        }
+    }
 }
