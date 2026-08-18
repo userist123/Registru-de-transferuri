@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using RegistruTransferuri.Data;
 using RegistruTransferuri.Hardware;
 using RegistruTransferuri.Models;
@@ -358,5 +359,44 @@ public class SecurityTests
         var res = DevicePolicyEnforcer.RemoveAllPolicies("TestAdmin");
         Assert.True(res.Success);
         Assert.Equal(UsbPolicyMode.FullAccess, DevicePolicyEnforcer.CurrentPolicy);
+    }
+
+    [Fact]
+    public void PadesSignatureService_SignsPdfDocumentSuccessfully()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), "test_doc_to_sign.pdf");
+        try
+        {
+            File.WriteAllText(tempFile, "%PDF-1.7 Test Content");
+            var signRes = PadesSignatureService.SignDocument(tempFile, "123456", "Cpt. Ionescu");
+            Assert.True(signRes.Success);
+            Assert.False(string.IsNullOrEmpty(signRes.SignatureHex));
+            Assert.False(string.IsNullOrEmpty(signRes.SignerSubject));
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public async Task PhysicalDriveSanitizer_SanitizesFilesAndValidatesNist()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "SanitizeTestDir");
+        Directory.CreateDirectory(tempDir);
+        var testFile = Path.Combine(tempDir, "secret.dat");
+
+        try
+        {
+            File.WriteAllText(testFile, "CONFIDENTIAL MILITARY PAYLOAD");
+            var res = await PhysicalDriveSanitizer.SanitizeVolumeAsync(tempDir, SanitizationMethod.Clear);
+            Assert.True(res.Success);
+            Assert.Equal(100.0, res.VerificationPercentage);
+            Assert.False(File.Exists(testFile)); // S-a șters după suprascriere
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 }
