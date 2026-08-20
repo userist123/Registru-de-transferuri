@@ -892,12 +892,25 @@ public partial class MainWindow : Window
 
     private void OnLogoutClick(object sender, RoutedEventArgs e)
     {
-        var login = new LoginWindow(_db);
+        // 1. Schimbam modul de oprire pentru a preveni oprirea automata la inchiderea ferestrei curente
+        Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        
+        Hide(); // Ascundem fereastra curenta pe durata autentificarii noului operator
+
+        var login = new LoginWindow(_db) { WindowStartupLocation = WindowStartupLocation.CenterScreen };
         if (login.ShowDialog() == true && login.AuthenticatedOperator != null)
         {
             var newWin = new MainWindow(_db, login.AuthenticatedOperator);
+            Application.Current.MainWindow = newWin;
+            Application.Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
             newWin.Show();
             Close();
+        }
+        else
+        {
+            // Daca utilizatorul a inchis fereastra de login la delogare, inchidem aplicatia
+            Close();
+            Application.Current.Shutdown(0);
         }
     }
 }
