@@ -131,47 +131,55 @@ public partial class MainWindow : Window
     {
         if (ViewRegistru == null) return;
 
-        ViewRegistru.Visibility = NavRegistru.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewInregistrare.Visibility = NavInregistrare.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewMedii.Visibility = NavMedii.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewOracle.Visibility = NavOracle.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewStats.Visibility = NavStats.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewAudit.Visibility = NavAudit.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        ViewAdmin.Visibility = NavAdmin.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        bool isRegistru = NavRegistru.IsChecked == true || (NavIstoric != null && NavIstoric.IsChecked == true);
+        bool isInregistrare = NavInregistrare.IsChecked == true;
+        bool isMedii = NavMedii.IsChecked == true;
+        bool isOracle = NavOracle.IsChecked == true;
+        bool isStats = NavStats.IsChecked == true;
+        bool isAudit = NavAudit.IsChecked == true;
+        bool isAdmin = NavAdmin.IsChecked == true || (NavSetari != null && NavSetari.IsChecked == true);
 
-        if (NavRegistru.IsChecked == true)
+        ViewRegistru.Visibility = isRegistru ? Visibility.Visible : Visibility.Collapsed;
+        ViewInregistrare.Visibility = isInregistrare ? Visibility.Visible : Visibility.Collapsed;
+        ViewMedii.Visibility = isMedii ? Visibility.Visible : Visibility.Collapsed;
+        ViewOracle.Visibility = isOracle ? Visibility.Visible : Visibility.Collapsed;
+        ViewStats.Visibility = isStats ? Visibility.Visible : Visibility.Collapsed;
+        ViewAudit.Visibility = isAudit ? Visibility.Visible : Visibility.Collapsed;
+        ViewAdmin.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+
+        if (isRegistru)
         {
-            LblViewTitle.Text = "REGISTRU TRANSFERURI";
+            LblViewTitle.Text = NavIstoric != null && NavIstoric.IsChecked == true ? "ISTORIC TRANSFERURI (JURNAL COMPLET)" : "REGISTRU TRANSFERURI";
             LoadRegistry();
         }
-        else if (NavInregistrare.IsChecked == true)
+        else if (isInregistrare)
         {
             LblViewTitle.Text = "TRANSFERURI ÎN AȘTEPTARE & ÎNREGISTRARE NOUĂ";
             RefreshLiveMedia();
         }
-        else if (NavMedii.IsChecked == true)
+        else if (isMedii)
         {
             LblViewTitle.Text = "UNITĂȚI MILITARE & CONTROL MEDII (ENDPOINT PROTECTION)";
             RefreshLiveMedia();
             LoadMediaWhitelist();
         }
-        else if (NavOracle.IsChecked == true)
+        else if (isOracle)
         {
             LblViewTitle.Text = "CLASIFICĂRI & CONSULTARE ORACOL INFOSEC";
         }
-        else if (NavStats.IsChecked == true)
+        else if (isStats)
         {
             LblViewTitle.Text = "RAPOARTE & STATISTICI MILITARE DE CONFORMITATE";
             LoadStats();
         }
-        else if (NavAudit.IsChecked == true)
+        else if (isAudit)
         {
             LblViewTitle.Text = "JURNAL SISTEM & AUDIT CRIPTOGRAFIC SHA-256";
             LoadAuditLog();
         }
-        else if (NavAdmin.IsChecked == true)
+        else if (isAdmin)
         {
-            LblViewTitle.Text = "GESTIUNE UTILIZATORI & OPERATORI MILITARI";
+            LblViewTitle.Text = NavSetari != null && NavSetari.IsChecked == true ? "SETĂRI SISTEM & GESTIUNE OPERATORI" : "GESTIUNE UTILIZATORI & OPERATORI MILITARI";
             LoadOperators();
         }
     }

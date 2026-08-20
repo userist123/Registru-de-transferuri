@@ -237,14 +237,14 @@
     </Style>
 
     <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH CARETRUSH ================= -->
+    <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH CARETRUSH ================= -->
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="10,7" />
         <Setter Property="MinHeight" Value="36" />
-        <Setter Property="Height" Value="38" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
@@ -261,7 +261,7 @@
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
                                       Margin="0"
-                                      VerticalAlignment="Center" />
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -287,10 +287,9 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="MinHeight" Value="36" />
-        <Setter Property="Height" Value="42" />
-        <Setter Property="FontSize" Value="18" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="FontSize" Value="15" />
         <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -306,7 +305,7 @@
                         <ScrollViewer x:Name="PART_ContentHost"
                                       Focusable="false"
                                       Margin="0"
-                                      VerticalAlignment="Center" />
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
