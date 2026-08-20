@@ -94,8 +94,14 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Hexagon Shield with Padlock -->
-                            <Border Grid.Column="0" Width="36" Height="36" Background="#064E3B" BorderBrush="{StaticResource EmeraldSecurityBrush}" BorderThickness="1.5" CornerRadius="8" Margin="0,0,10,0">
-                                <TextBlock Text="🔒" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border Grid.Column="0" Width="36" Height="36" Background="#064E3B" BorderBrush="{StaticResource EmeraldSecurityBrush}" BorderThickness="1.5" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                                <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M 6,10 L 18,10 C 19.1,10 20,10.9 20,12 L 20,20 C 20,21.1 19.1,22 18,22 L 6,22 C 4.9,22 4,21.1 4,20 L 4,12 C 4,10.9 4.9,10 6,10 Z" Fill="{StaticResource EmeraldSecurityBrush}" />
+                                        <Path Data="M 8,10 L 8,7 C 8,4.8 9.8,3 12,3 C 14.2,3 16,4.8 16,7 L 16,10" Stroke="{StaticResource EmeraldSecurityBrush}" StrokeThickness="2.2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Fill="Transparent" />
+                                        <Path Data="M 12,14 C 11.2,14 10.5,14.7 10.5,15.5 C 10.5,16.1 10.9,16.6 11.4,16.8 L 11,19 L 13,19 L 12.6,16.8 C 13.1,16.6 13.5,16.1 13.5,15.5 C 13.5,14.7 12.8,14 12,14 Z" Fill="#064E3B" />
+                                    </Canvas>
+                                </Viewbox>
                             </Border>
 
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -162,11 +168,15 @@
 
                     <!-- Left: Hamburger Toggle & Title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,14,0">
-                            <TextBlock Text="☰" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,14,0" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                            <Viewbox Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M 3,6 L 21,6 M 3,12 L 21,12 M 3,18 L 21,18" Stroke="{StaticResource TextPrimaryBrush}" StrokeThickness="2.2" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                </Canvas>
+                            </Viewbox>
                         </Border>
 
-                        <Border Width="3" Height="26" CornerRadius="1.5" Background="{StaticResource TacticalVioletBrush}" Margin="0,0,14,0" />
+                        <Border Width="3" Height="26" CornerRadius="1.5" Background="{StaticResource TacticalVioletBrush}" Margin="0,0,14,0" VerticalAlignment="Center" />
 
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock x:Name="LblViewTitle" Text="REGISTRU TRANSFERURI" FontSize="17" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" />
@@ -177,35 +187,46 @@
                     <!-- Right: NATO Shield, Operator Profile & Avatar -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- NATO Shield Icon -->
-                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,12,0">
-                            <TextBlock Text="🛡️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,12,0" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                            <Viewbox Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Data="M 12,2 L 4,5 L 4,11 C 4,16.5 7.4,21.7 12,23 C 16.6,21.7 20,16.5 20,11 L 20,5 Z" Fill="#0D1322" Stroke="{StaticResource CyberBlueBrush}" StrokeThickness="1.8" />
+                                    <Path Data="M 12,6 L 13.2,10.2 L 17.5,11.5 L 13.2,12.8 L 12,17 L 10.8,12.8 L 6.5,11.5 L 10.8,10.2 Z" Fill="{StaticResource CyberBlueBrush}" />
+                                </Canvas>
+                            </Viewbox>
                         </Border>
 
                         <!-- Operator Info Block -->
                         <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                             <TextBlock Text="OPERATOR" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
                             <TextBlock x:Name="LblOperatorName" Text="MAJ. ANDREI POPESCU" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,1,0,2" />
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="CLEARANCE LEVEL  " FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
-                                <Border Background="{StaticResource AmberDarkBrush}" BorderBrush="{StaticResource AmberWarningBrush}" BorderThickness="1" CornerRadius="4" Padding="6,1">
-                                    <TextBlock x:Name="LblOperatorClearance" Text="NATO CONFIDENTIAL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AmberWarningBrush}" />
+                                <Border Background="{StaticResource AmberDarkBrush}" BorderBrush="{StaticResource AmberWarningBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                    <TextBlock x:Name="LblOperatorClearance" Text="NATO CONFIDENTIAL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AmberWarningBrush}" VerticalAlignment="Center" />
                                 </Border>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Operator Avatar with Violet Glow & Online Indicator -->
-                        <Grid Width="42" Height="42" Margin="0,0,12,0">
-                            <Border CornerRadius="21" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="2">
+                        <Grid Width="42" Height="42" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <Border CornerRadius="21" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="2" SnapsToDevicePixels="True">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="{StaticResource TacticalVioletColor}" Opacity="0.8" />
                                 </Border.Effect>
-                                <TextBlock Text="👨‍✈️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Viewbox Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Data="M 12,2 C 9.5,2 7.5,4 7.5,6.5 C 7.5,7.8 8.2,9 9.2,9.7 C 6.5,10.8 4.5,13.5 4.5,16.8 L 4.5,20 L 19.5,20 L 19.5,16.8 C 19.5,13.5 17.5,10.8 14.8,9.7 C 15.8,9 16.5,7.8 16.5,6.5 C 16.5,4 14.5,2 12,2 Z" Fill="{StaticResource TextPrimaryBrush}" />
+                                        <Path Data="M 6,7 L 18,7 L 16,5 L 8,5 Z" Fill="{StaticResource AmberWarningBrush}" />
+                                        <Path Data="M 12,3.5 L 12.6,4.7 L 14,4.7 L 12.9,5.5 L 13.3,6.8 L 12,6 L 10.7,6.8 L 11.1,5.5 L 10,4.7 L 11.4,4.7 Z" Fill="#F59E0B" />
+                                    </Canvas>
+                                </Viewbox>
                             </Border>
                             <!-- Online Dot -->
                             <Ellipse Width="10" Height="10" Fill="{StaticResource EmeraldSecurityBrush}" Stroke="{StaticResource BgBaseBrush}" StrokeThickness="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" />
                         </Grid>
 
-                        <Button Content="🔒 Delogare" Height="34" Padding="12,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnLogoutClick" />
+                        <Button Content="🔒 Delogare" Height="36" Padding="14,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnLogoutClick" VerticalAlignment="Center" />
                     </StackPanel>
                 </Grid>
             </Border>

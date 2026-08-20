@@ -236,19 +236,21 @@
         </Setter>
     </Style>
 
-    <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH CARETRUSH ================= -->
-    <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH CARETRUSH ================= -->
+    <!-- ================= SARCINA 2.3: TEXTBOX & PASSWORDBOX WITH EXACT CENTERING ================= -->
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="{StaticResource BgElevatedBrush}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="MinHeight" Value="36" />
         <Setter Property="FontSize" Value="12" />
         <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TextBox}">
@@ -257,11 +259,18 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6"
-                            Padding="{TemplateBinding Padding}">
-                        <ScrollViewer x:Name="PART_ContentHost"
-                                      Focusable="false"
-                                      Margin="0"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            SnapsToDevicePixels="True"
+                            UseLayoutRounding="True">
+                        <Grid Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="false"
+                                          Margin="0"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -287,12 +296,15 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderDefaultBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Padding" Value="10,0" />
         <Setter Property="MinHeight" Value="38" />
         <Setter Property="FontSize" Value="15" />
         <Setter Property="CaretBrush" Value="{StaticResource CyberBlueBrush}" />
         <Setter Property="SelectionBrush" Value="{StaticResource TacticalVioletBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type PasswordBox}">
@@ -301,11 +313,18 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6"
-                            Padding="{TemplateBinding Padding}">
-                        <ScrollViewer x:Name="PART_ContentHost"
-                                      Focusable="false"
-                                      Margin="0"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            SnapsToDevicePixels="True"
+                            UseLayoutRounding="True">
+                        <Grid Margin="{TemplateBinding Padding}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="false"
+                                          Margin="0"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
