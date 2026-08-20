@@ -162,7 +162,55 @@ public sealed class DatabaseContext : IDisposable
             AddOperatorDirect("admin", "Administrator Sistem (Ofițer Securitate)", "admin", "MApN / Baza Tehnologică Centrală", ClassificationLevel.StrictSecretDeImportantaDeosebita, hAdmin, sAdmin);
 
             var (hOp, sOp) = HashPin("111111");
-            AddOperatorDirect("operator1", "Cpt. Ionescu Radu", "operator", "MApN / Structura Securitate", ClassificationLevel.Secret, hOp, sOp);
+            AddOperatorDirect("operator1", "Maj. Andrei Popescu", "operator", "MApN / Structura Securitate", ClassificationLevel.Secret, hOp, sOp);
+        }
+
+        EnsureSeedTransfers();
+    }
+
+    private void EnsureSeedTransfers()
+    {
+        using var countCmd = _conn.CreateCommand();
+        countCmd.CommandText = "SELECT COUNT(*) FROM transfers";
+        var count = Convert.ToInt32(countCmd.ExecuteScalar());
+        if (count == 0)
+        {
+            var sampleTransfers = new (string RegNr, ClassificationLevel Clf, string DateStr, string Src, string Dst, string Hash)[]
+            {
+                ("MAPN-2025-001", ClassificationLevel.Secret, "2025-05-20T14:28:43Z", "U.M. 02418 - B. 2 VÂNĂTORI", "U.M. 02574 - B. 191 INFANTERIE", "7f3b2e1c5a8d9f4b0c2e3d6a7f6e8c1db9a1c2d3e4f567890abcdefdedcba987"),
+                ("MAPN-2025-002", ClassificationLevel.StrictSecret, "2025-05-20T13:57:12Z", "U.M. 01101 - D. INFORMAȚII", "U.M. 03031 - S.M.G.", "a1d4c6e8f9b0a2c3d4e5f67890123456ef3456789abcde0123456789abcdef01"),
+                ("MAPN-2025-003", ClassificationLevel.Neclasificat, "2025-05-20T12:41:09Z", "U.M. 02684 - B. LOGISTICĂ", "U.M. 02418 - B. 2 VÂNĂTORI", "3c5d6e7f8a9b0c1d2e3f4567890abcde1234567890abcdef1234567890abcdef"),
+                ("MAPN-2025-004", ClassificationLevel.Secret, "2025-05-20T11:22:33Z", "U.M. 02030 - B. 30 GARDĂ", "U.M. 03031 - S.M.G.", "9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4da1b2c3d4e5f67890123456789abcdef0"),
+                ("MAPN-2025-005", ClassificationLevel.StrictSecret, "2025-05-20T10:15:47Z", "U.M. 01101 - D. INFORMAȚII", "U.M. 02030 - B. 30 GARDĂ", "e4f5d6c7b8a9e0f1d2c3b4a596877665fedcba9876543210fedcba9876543210"),
+                ("MAPN-2025-006", ClassificationLevel.Neclasificat, "2025-05-20T09:03:21Z", "U.M. 02684 - B. LOGISTICĂ", "U.M. 02574 - B. 191 INFANTERIE", "b2c3d4e5f6a7b8c9d0e1f23456789abc0f1e2d3c4b5a69788766554433221100"),
+                ("MAPN-2025-007", ClassificationLevel.Secret, "2025-05-20T08:47:56Z", "U.M. 02418 - B. 2 VÂNĂTORI", "U.M. 01101 - D. INFORMAȚII", "c7d8e9f0a1b2c3d4e5f60718293a4b5c0123456789abcdeffedcba9876543210"),
+                ("MAPN-2025-008", ClassificationLevel.Neclasificat, "2025-05-20T07:30:18Z", "U.M. 02010 - B. GENIU", "U.M. 02084 - B. LOGISTICĂ", "f1e2d3c4b5a69788766554433221100f0e1d2c3b4a59687766554433221100ff"),
+                ("MAPN-2025-009", ClassificationLevel.StrictSecret, "2025-05-20T06:12:05Z", "U.M. 03031 - S.M.G.", "U.M. 01101 - D. INFORMAȚII", "d0c1b2a3948576e1f2d3c4b5a6978876abcdef9876543210abcdef9876543210"),
+                ("MAPN-2025-010", ClassificationLevel.Secret, "2025-05-20T05:45:32Z", "U.M. 02574 - B. 191 INFANTERIE", "U.M. 02010 - B. GENIU", "1a2b3c4d5e6f708192a3b4c5d6e7f80998a7b6c5d4e3f210fedcba9876543210")
+            };
+
+            foreach (var s in sampleTransfers)
+            {
+                using var cmd = _conn.CreateCommand();
+                cmd.CommandText = @"INSERT INTO transfers (
+                    registry_number, classification, transfer_date_utc, direction,
+                    source_institution, source_station_host, source_person,
+                    destination_institution, destination_person, media_type, media_serial,
+                    payload_file_name, payload_sha256_hash, operator_username, integrity_hash, signed
+                ) VALUES (
+                    @rn, @clf, @dt, 'iesire',
+                    @src, 'MIL-RO-AGP-01', 'Maj. Andrei Popescu',
+                    @dst, 'Ofițer Delegat', 'Stick USB Flash', 'SEC-USB-001',
+                    'PACHET_TRANSFER.zip', @hash, 'operator1', 'INTEG-SHA256-OK', 1
+                )";
+                cmd.Parameters.AddWithValue("@rn", s.RegNr);
+                cmd.Parameters.AddWithValue("@clf", (int)s.Clf);
+                cmd.Parameters.AddWithValue("@dt", s.DateStr);
+                cmd.Parameters.AddWithValue("@src", s.Src);
+                cmd.Parameters.AddWithValue("@dst", s.Dst);
+                cmd.Parameters.AddWithValue("@hash", s.Hash);
+                cmd.ExecuteNonQuery();
+            }
         }
     }
 

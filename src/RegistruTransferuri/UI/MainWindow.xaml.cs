@@ -97,30 +97,32 @@ public partial class MainWindow : Window
         if (_isSidebarCollapsed)
         {
             ColSidebar.Width = new GridLength(68);
-            PanelBrandText.Visibility = Visibility.Collapsed;
-            LblNavHeader.Visibility = Visibility.Collapsed;
+            if (PanelBrandText != null) PanelBrandText.Visibility = Visibility.Collapsed;
             BtnToggleSidebar.Content = "▶";
             NavRegistru.Content = "📋";
-            NavInregistrare.Content = "➕";
-            NavMedii.Content = "🛡️";
-            NavOracle.Content = "🧠";
-            NavStats.Content = "📊";
-            NavAudit.Content = "🔗";
+            NavInregistrare.Content = "✈️";
+            if (NavIstoric != null) NavIstoric.Content = "🕒";
+            NavMedii.Content = "🏛️";
+            NavOracle.Content = "🛡️";
             NavAdmin.Content = "👥";
+            NavStats.Content = "📊";
+            NavAudit.Content = "📋";
+            if (NavSetari != null) NavSetari.Content = "⚙️";
         }
         else
         {
             ColSidebar.Width = new GridLength(280);
-            PanelBrandText.Visibility = Visibility.Visible;
-            LblNavHeader.Visibility = Visibility.Visible;
+            if (PanelBrandText != null) PanelBrandText.Visibility = Visibility.Visible;
             BtnToggleSidebar.Content = "◀";
-            NavRegistru.Content = "📋  Registru Transferuri";
-            NavInregistrare.Content = "➕  Înregistrare Transfer";
-            NavMedii.Content = "🛡️  Control Medii (PnP)";
-            NavOracle.Content = "🧠  Seif Cognitiv & Oracol";
-            NavStats.Content = "📊  Statistici & Conformitate";
-            NavAudit.Content = "🔗  Jurnal Audit SHA-256";
-            NavAdmin.Content = "👥  Gestiune Operatori";
+            NavRegistru.Content = "📋  REGISTRU TRANSFERURI";
+            NavInregistrare.Content = "✈️  TRANSFERURI ÎN AȘTEPTARE";
+            if (NavIstoric != null) NavIstoric.Content = "🕒  ISTORIC TRANSFERURI";
+            NavMedii.Content = "🏛️  UNITĂȚI MILITARE";
+            NavOracle.Content = "🛡️  CLASIFICĂRI";
+            NavAdmin.Content = "👥  UTILIZATORI";
+            NavStats.Content = "📊  RAPOARTE";
+            NavAudit.Content = "📋  JURNAL SISTEM";
+            if (NavSetari != null) NavSetari.Content = "⚙️  SETĂRI";
         }
     }
 
@@ -139,37 +141,37 @@ public partial class MainWindow : Window
 
         if (NavRegistru.IsChecked == true)
         {
-            LblViewTitle.Text = "📋 Evidența Transferurilor de Date Clasificate (HG 585 / NATO AC/35)";
+            LblViewTitle.Text = "REGISTRU TRANSFERURI";
             LoadRegistry();
         }
         else if (NavInregistrare.IsChecked == true)
         {
-            LblViewTitle.Text = "➕ Înregistrare Transfer Nou de Date (Control Strict Dispozitive)";
+            LblViewTitle.Text = "TRANSFERURI ÎN AȘTEPTARE & ÎNREGISTRARE NOUĂ";
             RefreshLiveMedia();
         }
         else if (NavMedii.IsChecked == true)
         {
-            LblViewTitle.Text = "🛡️ Control Medii de Stocare Amprentate (Endpoint Protector Model)";
+            LblViewTitle.Text = "UNITĂȚI MILITARE & CONTROL MEDII (ENDPOINT PROTECTION)";
             RefreshLiveMedia();
             LoadMediaWhitelist();
         }
         else if (NavOracle.IsChecked == true)
         {
-            LblViewTitle.Text = "🧠 Seif Cognitiv AI & Asistent de Securitate INFOSEC";
+            LblViewTitle.Text = "CLASIFICĂRI & CONSULTARE ORACOL INFOSEC";
         }
         else if (NavStats.IsChecked == true)
         {
-            LblViewTitle.Text = "📊 Tablou de Bord Statistici & Conformitate Militară";
+            LblViewTitle.Text = "RAPOARTE & STATISTICI MILITARE DE CONFORMITATE";
             LoadStats();
         }
         else if (NavAudit.IsChecked == true)
         {
-            LblViewTitle.Text = "📜 Jurnal de Audit Criptografic Tamper-Evident (SHA-256 Chained)";
+            LblViewTitle.Text = "JURNAL SISTEM & AUDIT CRIPTOGRAFIC SHA-256";
             LoadAuditLog();
         }
         else if (NavAdmin.IsChecked == true)
         {
-            LblViewTitle.Text = "⚙️ Administrare Sistem & Gestiune Operatori Militari";
+            LblViewTitle.Text = "GESTIUNE UTILIZATORI & OPERATORI MILITARI";
             LoadOperators();
         }
     }
@@ -177,28 +179,17 @@ public partial class MainWindow : Window
     // ================= TAB 1: REGISTRU TRANSFERURI =================
     private void LoadRegistry()
     {
-        var search = TxtSearchRegistry.Text.Trim();
-        ClassificationLevel? clf = CmbFilterClassification.SelectedIndex > 0 ? (ClassificationLevel)CmbFilterClassification.SelectedItem : null;
+        var search = TxtSearchRegistry != null ? TxtSearchRegistry.Text.Trim() : "";
+        ClassificationLevel? clf = CmbFilterClassification != null && CmbFilterClassification.SelectedIndex > 0 ? (ClassificationLevel)CmbFilterClassification.SelectedItem : null;
         _transfers = _db.GetTransfers(search, clf);
-        GridTransfers.ItemsSource = _transfers;
+        if (GridTransfers != null) GridTransfers.ItemsSource = _transfers;
     }
 
     private void OnRegistryFilterChanged(object sender, EventArgs e) => LoadRegistry();
 
     private void OnTransferSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (GridTransfers.SelectedItem is TransferRecord tx)
-        {
-            TxtInspector.Text =
-                $"=== DETALII TRANSFER MILITAR #{tx.RegistryNumber} ===\r\n" +
-                $"Clasificare: {tx.Classification} (Echiv. NATO: {tx.NatoClassification})\r\n" +
-                $"Sursă: {tx.SourceInstitution} ({tx.SourcePerson}) ➔ Destinație: {tx.DestinationInstitution} ({tx.DestinationPerson})\r\n" +
-                $"Curier: {tx.CourierName ?? "N/A"} (Permis: {tx.CourierPermitNumber ?? "N/A"})\r\n" +
-                $"Fișier: {tx.PayloadFileName} ({tx.PayloadSizeGb:F3} GB) | Hash SHA-256: {tx.PayloadSha256Hash}\r\n" +
-                $"Mediu S/N: {tx.MediaSerialNumber} | Tip: {tx.MediaType}\r\n" +
-                $"Operator: {tx.OperatorUsername} | 4-Ochi Verificator: {tx.FourEyesApproverName ?? "N/A"}\r\n" +
-                $"Status: {tx.StatusText} | Semnat Formal: {(tx.Signed ? "DA" : "NU")}";
-        }
+        // Selected item change handler
     }
 
     private void OnSignTransferClick(object sender, RoutedEventArgs e)

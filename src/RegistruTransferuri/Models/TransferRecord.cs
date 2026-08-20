@@ -73,6 +73,19 @@ public sealed class TransferRecord
     public string? CancellationReason { get; set; }
     public string StatusText => Cancelled ? "ANULAT" : (Signed ? "FINALIZAT & SEMNAT" : "ACTIV / ÎNREGISTRAT");
 
+    // Helper UI Bindings (Mockup Match)
+    public string FormattedDate => TransferDateUtc.ToString("yyyy-MM-dd HH:mm:ss");
+    public string ClassificationDisplayName => Classification switch
+    {
+        ClassificationLevel.Neclasificat => "UNCLASSIFIED",
+        ClassificationLevel.SecretDeServiciu => "SECRET DE SERVICIU",
+        ClassificationLevel.Secret => "NATO CONFIDENTIAL",
+        ClassificationLevel.StrictSecret => "STRICT SECRET",
+        ClassificationLevel.StrictSecretDeImportantaDeosebita => "COSMIC TOP SECRET",
+        _ => "UNCLASSIFIED"
+    };
+    public string StatusBadgeText => Cancelled ? "ANULAT" : ClassificationDisplayName;
+
     // Criptografie
     public string IntegrityHash { get; set; } = string.Empty;
 }

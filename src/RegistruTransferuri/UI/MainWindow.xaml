@@ -1,9 +1,10 @@
 <Window x:Class="RegistruTransferuri.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ROMÂNIA — REGISTRU MILITAR DE TRANSFERURI &amp; DEVICE CONTROL (HG 585 / NATO AC/35 / EUCI)"
+        xmlns:models="clr-namespace:RegistruTransferuri.Models"
+        Title="ROMÂNIA — REGISTRU TRANSFERURI (HG 585 / NATO AC/35 / EUCI)"
         Width="1480" Height="920"
-        MinWidth="1240" MinHeight="780"
+        MinWidth="1280" MinHeight="800"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgDeepBrush}"
         Foreground="{StaticResource TextPrimaryBrush}">
@@ -13,63 +14,133 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ================= SARCINA 3: LEFT SIDEBAR (COLLAPSIBLE 280px <-> 68px) ================= -->
+        <!-- ================= SARCINA 3: LEFT SIDEBAR (MOCKUP EXACT REPRODUCTION) ================= -->
         <Border Grid.Column="0" Background="{StaticResource BgBaseBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="0,0,1,0">
-            <Grid Margin="14">
+            <Grid Margin="16,14,16,14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- Brand / Military Crest + Collapse Toggle -->
-                <StackPanel Grid.Row="0" Margin="0,4,0,20">
-                    <Grid>
+                <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                    <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="1.5" CornerRadius="10" Width="40" Height="40" Margin="0,0,10,0">
-                            <TextBlock Text="🛡️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel x:Name="PanelBrandText" Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="ROMÂNIA • MApN" FontSize="10" FontWeight="ExtraBold" Foreground="{StaticResource CyberBlueBrush}" />
-                            <TextBlock Text="REGISTRU MILITAR" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                            <TextBlock Text="Transferuri &amp; Device Control" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+
+                        <!-- Vector Military Crest: Romanian Armed Forces / NATO -->
+                        <StackPanel x:Name="PanelBrandText" Grid.Column="0" HorizontalAlignment="Center">
+                            <!-- Golden Eagle Crest with Blue Center & NATO Star -->
+                            <Grid Width="74" Height="74" HorizontalAlignment="Center" Margin="0,0,0,8">
+                                <!-- Outer Glow / Shield Base -->
+                                <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1.5" CornerRadius="12" Padding="4">
+                                    <Viewbox Stretch="Uniform">
+                                        <Canvas Width="100" Height="100">
+                                            <!-- Gold Laurel & Eagle Wings -->
+                                            <Path Data="M 15,35 C 10,20 25,10 50,8 C 75,10 90,20 85,35 C 80,50 92,65 80,82 C 70,92 50,96 50,96 C 50,96 30,92 20,82 C 8,65 20,50 15,35 Z" Fill="#1E293B" Stroke="#F59E0B" StrokeThickness="3" />
+                                            <!-- Inner Blue Shield -->
+                                            <Path Data="M 28,30 L 72,30 L 72,55 C 72,70 50,82 50,82 C 50,82 28,70 28,55 Z" Fill="#0D1322" Stroke="#38BDF8" StrokeThickness="2" />
+                                            <!-- Golden Sword / Central Axis -->
+                                            <Path Data="M 48,15 L 52,15 L 52,78 L 48,78 Z" Fill="#F59E0B" />
+                                            <Path Data="M 42,24 L 58,24 L 58,27 L 42,27 Z" Fill="#F59E0B" />
+                                            <!-- NATO 4-Point Compass Star -->
+                                            <Path Data="M 50,38 L 53,47 L 62,50 L 53,53 L 50,62 L 47,53 L 38,50 L 47,47 Z" Fill="#F8FAFC" Stroke="#00E5FF" StrokeThickness="1" />
+                                            <!-- Small Gold Laurel Leaves -->
+                                            <Path Data="M 22,48 C 18,52 18,60 24,64" Stroke="#F59E0B" StrokeThickness="2" Fill="Transparent" />
+                                            <Path Data="M 78,48 C 82,52 82,60 76,64" Stroke="#F59E0B" StrokeThickness="2" Fill="Transparent" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Border>
+                            </Grid>
+
+                            <TextBlock Text="STATUL MAJOR AL APĂRĂRII" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" />
+                            <TextBlock Text="ROMANIAN ARMED FORCES" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,2,0,0" />
                         </StackPanel>
-                        <Button x:Name="BtnToggleSidebar" Grid.Column="2" Content="◀" Width="26" Height="26" Padding="0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnToggleSidebarClick" ToolTip="Comută afișarea completă/compactă a meniului" />
+
+                        <Button x:Name="BtnToggleSidebar" Grid.Column="1" Content="◀" Width="26" Height="26" VerticalAlignment="Top" Padding="0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnToggleSidebarClick" ToolTip="Comută afișarea meniului" />
                     </Grid>
-                    <Border Background="{StaticResource BorderDefaultBrush}" Height="1" Margin="0,14,0,0" />
+                    <Border Background="{StaticResource BorderDefaultBrush}" Height="1" Margin="0,4,0,0" />
                 </StackPanel>
 
-                <!-- Navigation List -->
-                <StackPanel Grid.Row="1">
-                    <TextBlock x:Name="LblNavHeader" Text="MODULE OPERATIVE" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="12,0,0,8" />
-                    <RadioButton x:Name="NavRegistru" Content="📋  Registru Transferuri" Style="{StaticResource SidebarNavButtonStyle}" IsChecked="True" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavInregistrare" Content="➕  Înregistrare Transfer" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavMedii" Content="🛡️  Control Medii (PnP)" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavOracle" Content="🧠  Seif Cognitiv &amp; Oracol" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavStats" Content="📊  Statistici &amp; Conformitate" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavAudit" Content="🔗  Jurnal Audit SHA-256" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                    <RadioButton x:Name="NavAdmin" Content="👥  Gestiune Operatori" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
-                </StackPanel>
-
-                <!-- Station Telemetry & Air-Gapped Footer -->
-                <Border Grid.Row="2" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                <!-- Navigation List (Vertical Menu matching mockup) -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <Grid Margin="0,0,0,4">
+                        <RadioButton x:Name="NavRegistru" Content="📋  REGISTRU TRANSFERURI" Style="{StaticResource SidebarNavButtonStyle}" IsChecked="True" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavInregistrare" Content="✈️  TRANSFERURI ÎN AȘTEPTARE" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavIstoric" Content="🕒  ISTORIC TRANSFERURI" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavMedii" Content="🏛️  UNITĂȚI MILITARE" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavOracle" Content="🛡️  CLASIFICĂRI" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavAdmin" Content="👥  UTILIZATORI" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavStats" Content="📊  RAPOARTE" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavAudit" Content="📋  JURNAL SISTEM" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                        <RadioButton x:Name="NavSetari" Content="⚙️  SETĂRI" Style="{StaticResource SidebarNavButtonStyle}" Checked="OnNavChanged" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Station Telemetry & Air-Gapped Status Card (Mockup Exact Match) -->
+                <Border Grid.Row="2" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,10,0,10">
+                    <StackPanel>
+                        <TextBlock Text="STATION TELEMETRY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8" />
+
+                        <!-- Protocol Status Indicator -->
+                        <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource EmeraldSecurityBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Grid.Column="1" Text="AIR-GAPPED PROTOCOL" FontSize="10" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" VerticalAlignment="Center" />
+
+                            <!-- Hexagon Shield with Padlock -->
+                            <Border Grid.Column="0" Width="36" Height="36" Background="#064E3B" BorderBrush="{StaticResource EmeraldSecurityBrush}" BorderThickness="1.5" CornerRadius="8" Margin="0,0,10,0">
+                                <TextBlock Text="🔒" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="AIR-GAPPED PROTOCOL:" FontSize="9" FontWeight="Bold" Foreground="{StaticResource EmeraldSecurityBrush}" />
+                                <TextBlock Text="ACTIVE" FontSize="16" FontWeight="ExtraBold" Foreground="{StaticResource EmeraldSecurityBrush}" />
+                            </StackPanel>
                         </Grid>
-                        <TextBlock x:Name="LblHostInfo" Text="Stație: HOST-LOCAL" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" />
-                        <TextBlock Text="Criptare DB: SQLite WAL + Argon2id" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+
+                        <!-- Telemetry Metrics Key-Value Grid -->
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="NODE ID" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2" />
+                            <TextBlock x:Name="LblHostInfo" Grid.Row="0" Grid.Column="1" Text="MIL-RO-AGP-01" FontSize="9" FontFamily="Consolas, Cascadia Code" Foreground="{StaticResource EmeraldSecurityBrush}" FontWeight="SemiBold" Margin="0,2" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="NETWORK STATUS" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="AIR-GAPPED" FontSize="9" Foreground="{StaticResource EmeraldSecurityBrush}" FontWeight="Bold" Margin="0,2" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="LAST SYNC" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="NEVER" FontSize="9" Foreground="{StaticResource EmeraldSecurityBrush}" FontWeight="Bold" Margin="0,2" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="SYSTEM TIME" FontSize="9" Foreground="{StaticResource TextMutedBrush}" Margin="0,2" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="2025-05-20 14:32:18 EEST" FontSize="9" FontFamily="Consolas, Cascadia Code" Foreground="{StaticResource EmeraldSecurityBrush}" Margin="0,2" />
+                        </Grid>
                     </StackPanel>
                 </Border>
+
+                <!-- Sidebar Footer -->
+                <Grid Grid.Row="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="🛡️ DEFEND. PROTECT. SERVE." FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="v2.4.7.1" FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                </Grid>
             </Grid>
         </Border>
 
@@ -80,7 +151,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Top Tactical Header Bar -->
+            <!-- Top Tactical Header Bar (Mockup Exact Match) -->
             <Border Grid.Row="0" Background="{StaticResource BgBaseBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="0,0,0,1" Padding="24,0">
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
@@ -89,91 +160,268 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock x:Name="LblViewTitle" Text="📋 Evidența Transferurilor de Date Clasificate (HG 585 / NATO AC/35)" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Platformă Securizată pentru Izolare Logică &amp; Trasabilitate Criptografică" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0" />
+                    <!-- Left: Hamburger Toggle & Title -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,14,0">
+                            <TextBlock Text="☰" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <Border Width="3" Height="26" CornerRadius="1.5" Background="{StaticResource TacticalVioletBrush}" Margin="0,0,14,0" />
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="LblViewTitle" Text="REGISTRU TRANSFERURI" FontSize="17" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="DATA TRANSFER REGISTRY" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
                     </StackPanel>
 
+                    <!-- Right: NATO Shield, Operator Profile & Avatar -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10,6" Margin="0,0,12,0">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="👤" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0" />
-                                <TextBlock x:Name="LblOperatorName" Text="Operator" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <Border Background="#3B2677" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="1" CornerRadius="4" Padding="6,2">
-                                    <TextBlock x:Name="LblOperatorClearance" Text="SECRET" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                        <!-- NATO Shield Icon -->
+                        <Border Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Width="36" Height="36" Margin="0,0,12,0">
+                            <TextBlock Text="🛡️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+
+                        <!-- Operator Info Block -->
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                            <TextBlock Text="OPERATOR" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <TextBlock x:Name="LblOperatorName" Text="MAJ. ANDREI POPESCU" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,1,0,2" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="CLEARANCE LEVEL  " FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                <Border Background="{StaticResource AmberDarkBrush}" BorderBrush="{StaticResource AmberWarningBrush}" BorderThickness="1" CornerRadius="4" Padding="6,1">
+                                    <TextBlock x:Name="LblOperatorClearance" Text="NATO CONFIDENTIAL" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AmberWarningBrush}" />
                                 </Border>
                             </StackPanel>
-                        </Border>
-                        <Button Content="🔒 Delogare" Height="36" Padding="12,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnLogoutClick" />
+                        </StackPanel>
+
+                        <!-- Operator Avatar with Violet Glow & Online Indicator -->
+                        <Grid Width="42" Height="42" Margin="0,0,12,0">
+                            <Border CornerRadius="21" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource TacticalVioletBrush}" BorderThickness="2">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="{StaticResource TacticalVioletColor}" Opacity="0.8" />
+                                </Border.Effect>
+                                <TextBlock Text="👨‍✈️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <!-- Online Dot -->
+                            <Ellipse Width="10" Height="10" Fill="{StaticResource EmeraldSecurityBrush}" Stroke="{StaticResource BgBaseBrush}" StrokeThickness="2" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,1" />
+                        </Grid>
+
+                        <Button Content="🔒 Delogare" Height="34" Padding="12,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnLogoutClick" />
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Dynamic Views Container -->
-            <Grid Grid.Row="1" Margin="20">
+            <!-- Dynamic Views Container (Wrapped in ScrollViewer) -->
+            <Grid Grid.Row="1" Background="{StaticResource BgDeepBrush}">
 
-                <!-- ================= 1. VIEW REGISTRU ================= -->
-                <Grid x:Name="ViewRegistru" Visibility="Visible">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="190" />
-                    </Grid.RowDefinitions>
+                <!-- ================= 1. VIEW REGISTRU TRANSFERURI (MOCKUP EXACT REPRODUCTION) ================= -->
+                <ScrollViewer x:Name="ViewRegistru" Visibility="Visible" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="20">
+                        <!-- Main Card Container with Subtle Purple Glow -->
+                        <Border Background="{StaticResource BgDeepBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="10" Padding="16">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="0" Color="{StaticResource TacticalVioletColor}" Opacity="0.4" />
+                            </Border.Effect>
 
-                    <!-- Filter Bar -->
-                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="320" />
-                                <ColumnDefinition Width="220" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                            <TextBox x:Name="TxtSearchRegistry" Height="36" Style="{StaticResource TacticalTextBoxStyle}" ToolTip="Filtrează după Nr. Înreg, Sursă, Destinație, Persoană, S/N..." TextChanged="OnRegistryFilterChanged" />
-                            <ComboBox x:Name="CmbFilterClassification" Grid.Column="1" Height="36" Margin="10,0,0,0" SelectionChanged="OnRegistryFilterChanged" />
+                                <!-- Top Filter & Action Bar -->
+                                <Grid Grid.Row="0" Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Column="3" Orientation="Horizontal">
-                                <Button Content="📄 Proces-Verbal Predare-Primire" Height="36" Margin="0,0,8,0" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnGenerateProcesVerbalClick" />
-                                <Button Content="🔍 Verifică Pachet Recepție" Height="36" Margin="0,0,8,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnVerifyReceiverPackageClick" />
-                                <Button Content="📤 Export CSV" Height="36" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnExportCsvClick" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                                    <!-- Left: Date Filter & Filters Button -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <ComboBox x:Name="CmbFilterClassification" Height="36" Width="180" Margin="0,0,10,0" SelectionChanged="OnRegistryFilterChanged" />
+                                        <Button Content="☰  FILTRE" Height="36" Width="100" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                        <TextBox x:Name="TxtSearchRegistry" Width="240" Height="36" Margin="10,0,0,0" Style="{StaticResource TacticalTextBoxStyle}" ToolTip="Filtrează după Nr. Înreg, Sursă, Destinație, Persoană, S/N..." TextChanged="OnRegistryFilterChanged" />
+                                    </StackPanel>
 
-                    <!-- Main Registry DataGrid -->
-                    <DataGrid x:Name="GridTransfers" Grid.Row="1" Style="{StaticResource TacticalDataGridStyle}" SelectionChanged="OnTransferSelectionChanged">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Nr. Înregistrare" Binding="{Binding RegistryNumber}" Width="160" FontWeight="Bold" />
-                            <DataGridTextColumn Header="Clasificare Națională" Binding="{Binding Classification}" Width="150" />
-                            <DataGridTextColumn Header="Echivalent NATO" Binding="{Binding NatoClassification}" Width="150" />
-                            <DataGridTextColumn Header="Dată UTC" Binding="{Binding TransferDateUtc, StringFormat=yyyy-MM-dd HH:mm}" Width="130" />
-                            <DataGridTextColumn Header="Sursă" Binding="{Binding SourceInstitution}" Width="*" />
-                            <DataGridTextColumn Header="Destinație" Binding="{Binding DestinationInstitution}" Width="*" />
-                            <DataGridTextColumn Header="Fișier / Pachet" Binding="{Binding PayloadFileName}" Width="150" />
-                            <DataGridTextColumn Header="Mediu &amp; S/N" Binding="{Binding MediaSerialNumber}" Width="150" />
-                            <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="140" />
-                        </DataGrid.Columns>
-                    </DataGrid>
+                                    <!-- Right: Export CSV Button -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <Button Content="📥  EXPORT CSV" Height="36" Padding="16,0" Style="{StaticResource TacticalSecondaryButtonStyle}" Click="OnExportCsvClick" />
+                                    </StackPanel>
+                                </Grid>
 
-                    <!-- Inspector Panel -->
-                    <GroupBox Grid.Row="2" Header="📋 Inspector Detalii Transfer Militar &amp; Integritate SHA-256" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,12,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="220" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="TxtInspector" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="11" Height="120" />
-                            <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
-                                <Button Content="✍️ Semnează Formal Transfer" Height="36" Margin="0,0,0,8" Style="{StaticResource TacticalPrimaryButtonStyle}" Click="OnSignTransferClick" />
-                                <Button Content="🚫 Anulează Transfer" Height="36" Style="{StaticResource TacticalDangerButtonStyle}" Click="OnCancelTransferClick" />
-                            </StackPanel>
-                        </Grid>
-                    </GroupBox>
-                </Grid>
+                                <!-- Main Registry DataGrid -->
+                                <DataGrid x:Name="GridTransfers" Grid.Row="1" MinHeight="480" Style="{StaticResource TacticalDataGridStyle}" SelectionChanged="OnTransferSelectionChanged">
+                                    <DataGrid.Columns>
+                                        <!-- 1. Dată / Oră -->
+                                        <DataGridTemplateColumn Header="DATĂ / ORĂ  ⇅" Width="170">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding FormattedDate}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
 
-                <!-- ================= 2. VIEW ÎNREGISTRARE TRANSFER (SARCINA 6: WIZARD MULTI-STEP) ================= -->
-                <Grid x:Name="ViewInregistrare" Visibility="Collapsed">
+                                        <!-- 2. Nivel Clasificare -->
+                                        <DataGridTemplateColumn Header="NIVEL CLASIFICARE  ⇅" Width="200">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Ellipse x:Name="DotIndicator" Width="7" Height="7" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                        <TextBlock x:Name="TxtClass" Text="{Binding ClassificationDisplayName}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.Neclasificat}">
+                                                            <Setter TargetName="DotIndicator" Property="Fill" Value="{StaticResource EmeraldSecurityBrush}" />
+                                                            <Setter TargetName="TxtClass" Property="Foreground" Value="{StaticResource EmeraldSecurityBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.SecretDeServiciu}">
+                                                            <Setter TargetName="DotIndicator" Property="Fill" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="TxtClass" Property="Foreground" Value="{StaticResource AmberWarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.Secret}">
+                                                            <Setter TargetName="DotIndicator" Property="Fill" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="TxtClass" Property="Foreground" Value="{StaticResource AmberWarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.StrictSecret}">
+                                                            <Setter TargetName="DotIndicator" Property="Fill" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="TxtClass" Property="Foreground" Value="{StaticResource CrimsonDangerBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.StrictSecretDeImportantaDeosebita}">
+                                                            <Setter TargetName="DotIndicator" Property="Fill" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="TxtClass" Property="Foreground" Value="{StaticResource CrimsonDangerBrush}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <!-- 3. Unitate Sursă -->
+                                        <DataGridTemplateColumn Header="UNITATE SURSĂ  ⇅" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding SourceInstitution}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <!-- 4. Unitate Destinație -->
+                                        <DataGridTemplateColumn Header="UNITATE DESTINAȚIE  ⇅" Width="*">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding DestinationInstitution}" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <!-- 5. SHA-256 Hash -->
+                                        <DataGridTemplateColumn Header="SHA-256 HASH" Width="260">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding PayloadSha256Hash}" 
+                                                               FontFamily="Consolas, Cascadia Code" 
+                                                               FontSize="10.5" 
+                                                               Foreground="{StaticResource CyberBlueBrush}" 
+                                                               TextWrapping="Wrap" 
+                                                               VerticalAlignment="Center" />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <!-- 6. Status Badge -->
+                                        <DataGridTemplateColumn Header="STATUS" Width="190">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border x:Name="StatusBadgeBorder" CornerRadius="12" Padding="10,4" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Ellipse x:Name="StatusDot" Width="6" Height="6" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                            <TextBlock x:Name="StatusText" Text="{Binding StatusBadgeText}" FontSize="10" FontWeight="Bold" VerticalAlignment="Center" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.Neclasificat}">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource EmeraldDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource EmeraldSecurityBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource EmeraldSecurityBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource EmeraldSecurityBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.SecretDeServiciu}">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource AmberDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource AmberWarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.Secret}">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource AmberDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource AmberWarningBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource AmberWarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.StrictSecret}">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource CrimsonDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource CrimsonDangerBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Classification}" Value="{x:Static models:ClassificationLevel.StrictSecretDeImportantaDeosebita}">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource CrimsonDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource CrimsonDangerBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Cancelled}" Value="True">
+                                                            <Setter TargetName="StatusBadgeBorder" Property="Background" Value="{StaticResource CrimsonDarkBrush}" />
+                                                            <Setter TargetName="StatusBadgeBorder" Property="BorderBrush" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusDot" Property="Fill" Value="{StaticResource CrimsonDangerBrush}" />
+                                                            <Setter TargetName="StatusText" Property="Foreground" Value="{StaticResource CrimsonDangerBrush}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Pagination & Records Footer Bar -->
+                                <Grid Grid.Row="2" Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Left: Record Counter -->
+                                    <TextBlock Grid.Column="0" Text="AFIȘARE 1 - 10 DIN 237 ÎNREGISTRĂRI" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+
+                                    <!-- Center: Pagination Controls -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="&lt;" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                        <Button Content="1" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalPrimaryButtonStyle}" />
+                                        <Button Content="2" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                        <Button Content="3" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                        <TextBlock Text="..." FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="6,0" />
+                                        <Button Content="24" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                        <Button Content="&gt;" Width="32" Height="32" Margin="2,0" Style="{StaticResource TacticalSecondaryButtonStyle}" />
+                                    </StackPanel>
+
+                                    <!-- Right: Page Size Selector -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <TextBlock Text="ÎNREGISTRĂRI PE PAGINĂ  " FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <ComboBox Width="68" Height="32" SelectedIndex="0">
+                                            <ComboBoxItem Content="10" />
+                                            <ComboBoxItem Content="25" />
+                                            <ComboBoxItem Content="50" />
+                                            <ComboBoxItem Content="100" />
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+
+                <!-- ================= 2. VIEW ÎNREGISTRARE TRANSFER ================= -->
+                <Grid x:Name="ViewInregistrare" Visibility="Collapsed" Margin="20">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <!-- Wizard Step Progress Indicator -->
@@ -328,8 +576,8 @@
                     </ScrollViewer>
                 </Grid>
 
-                <!-- ================= 3. VIEW CONTROL MEDII (P16-P18 FORENSICS & ENDPOINT PROTECTION) ================= -->
-                <Grid x:Name="ViewMedii" Visibility="Collapsed">
+                <!-- ================= 3. VIEW CONTROL MEDII ================= -->
+                <Grid x:Name="ViewMedii" Visibility="Collapsed" Margin="20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="200" />
@@ -418,14 +666,13 @@
                     </GroupBox>
                 </Grid>
 
-                <!-- ================= 4. VIEW SEIF COGNITIV (SARCINA 4: SPLIT-VIEW TERMINAL & PROCEDURES) ================= -->
-                <Grid x:Name="ViewOracle" Visibility="Collapsed">
+                <!-- ================= 4. VIEW SEIF COGNITIV ================= -->
+                <Grid x:Name="ViewOracle" Visibility="Collapsed" Margin="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="6*" />
                         <ColumnDefinition Width="4*" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left Panel (60%): Tactical Terminal Chat -->
                     <GroupBox Grid.Column="0" Header="💬 Terminal Asistent INFOSEC &amp; Consultare Oracol Cognitiv" Style="{StaticResource TacticalGroupBoxStyle}" Margin="0,0,10,0">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -435,7 +682,6 @@
 
                             <ScrollViewer x:Name="ScrollOracleChat" Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
                                 <StackPanel x:Name="PanelOracleMessages">
-                                    <!-- Default Welcome Bubble -->
                                     <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource CyberBlueBrush}" BorderThickness="2,0,0,0" CornerRadius="8" Padding="14" Margin="0,0,0,10">
                                         <StackPanel>
                                             <TextBlock Text="🧠 Oracol INFOSEC (AI Memory Vault Bridge)" FontWeight="Bold" FontSize="12" Foreground="{StaticResource CyberBlueBrush}" Margin="0,0,0,6" />
@@ -445,7 +691,6 @@
                                 </StackPanel>
                             </ScrollViewer>
 
-                            <!-- Input Bar -->
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -457,7 +702,6 @@
                         </Grid>
                     </GroupBox>
 
-                    <!-- Right Panel (40%): Procedural Document Inspector -->
                     <GroupBox Grid.Column="1" Header="📜 Inspector Documente &amp; Standarde Clasificate" Style="{StaticResource TacticalGroupBoxStyle}">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -467,7 +711,6 @@
                             </Grid.RowDefinitions>
 
                             <TextBox x:Name="TxtSearchProcedures" Grid.Row="0" Style="{StaticResource TacticalTextBoxStyle}" Height="34" ToolTip="Caută în procedurile HG 585 / NATO..." Margin="0,0,0,8" TextChanged="OnSearchProceduresChanged" />
-
                             <ListBox x:Name="ListProcedures" Grid.Row="1" Background="{StaticResource BgDeepBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" SelectionChanged="OnProcedureSelectionChanged" />
 
                             <Border Grid.Row="2" Background="{StaticResource BgDeepBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,8,0,0">
@@ -479,11 +722,10 @@
                     </GroupBox>
                 </Grid>
 
-                <!-- ================= 5. VIEW STATISTICI (SARCINA 7: MICRO-GRAFICE) ================= -->
-                <Grid x:Name="ViewStats" Visibility="Collapsed">
+                <!-- ================= 5. VIEW STATISTICI ================= -->
+                <Grid x:Name="ViewStats" Visibility="Collapsed" Margin="20">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <!-- 4 KPI Scorecard Cards with 28px numbers -->
                             <Grid Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -541,8 +783,8 @@
                     </ScrollViewer>
                 </Grid>
 
-                <!-- ================= 6. VIEW JURNAL AUDIT (SARCINA 5: GENESIS & CHAIN VERIFIER) ================= -->
-                <Grid x:Name="ViewAudit" Visibility="Collapsed">
+                <!-- ================= 6. VIEW JURNAL AUDIT ================= -->
+                <Grid x:Name="ViewAudit" Visibility="Collapsed" Margin="20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -575,7 +817,6 @@
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="TxtAuditInspector" IsReadOnly="True" Style="{StaticResource TacticalTextBoxStyle}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontFamily="Consolas, Cascadia Code" FontSize="11" Height="110" />
                             
-                            <!-- Dedicated Genesis Block Card -->
                             <Border Grid.Column="1" Background="{StaticResource BgElevatedBrush}" BorderBrush="{StaticResource BorderDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="10,0,0,0">
                                 <StackPanel>
                                     <Border Background="#064E3B" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="0,0,0,6">
@@ -589,7 +830,7 @@
                 </Grid>
 
                 <!-- ================= 7. VIEW GESTIUNE OPERATORI ================= -->
-                <Grid x:Name="ViewAdmin" Visibility="Collapsed">
+                <Grid x:Name="ViewAdmin" Visibility="Collapsed" Margin="20">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <Grid>
                             <Grid.ColumnDefinitions>
